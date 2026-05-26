@@ -290,6 +290,94 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [activeContactId, hasLoaded]);
 
+  // Webhook Inbox Poller Effect (Syncs live incoming WhatsApp messages with CRM Contacts & Chat History)
+  useEffect(() => {
+    if (!hasLoaded) return;
+
+    let isPolling = true;
+
+    async function checkWebhookQueue() {
+      try {
+        const response = await fetch('/api/webhooks/incoming-queue');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const incoming = data.queue || [];
+
+        if (incoming.length > 0) {
+          console.log('Syncing incoming webhook messages:', incoming);
+
+          // We'll accumulate state updates safely
+          let currentContacts = [...contacts];
+          let currentMessages = [...messages];
+          let updatedActiveContactId = activeContactId;
+
+          for (const item of incoming) {
+            // Find existing contact matching the incoming phone number
+            // Standardize spaces and non-digits for resilient matching
+            const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
+            let contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber);
+
+            if (!contact) {
+              // Automatically register the contact in CRM with WhatsApp name
+              const newContactId = `c-webhook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              contact = {
+                id: newContactId,
+                name: item.senderName || `WhatsApp User (${item.phoneNumber})`,
+                phoneNumber: item.phoneNumber,
+                tags: ['Incoming', 'Lead'],
+                status: 'active',
+                leadStatus: 'new',
+                automationEnabled: true,
+                interactions: []
+              };
+              currentContacts.push(contact);
+              console.log('Automatically added new contact to CRM:', contact);
+            }
+
+            // Append the message to inbox history
+            const newMsg: Message = {
+              id: item.id || `m-webhook-${Date.now()}`,
+              accountId: activeAccountId || 'acc-1',
+              contactId: contact.id,
+              type: 'text',
+              body: item.body,
+              direction: 'INCOMING',
+              status: 'read',
+              timestamp: item.timestamp || new Date().toISOString()
+            };
+            currentMessages.push(newMsg);
+
+            // Automatically focus active inbox thread on incoming message if needed
+            updatedActiveContactId = contact.id;
+          }
+
+          // Update store states
+          setContacts(currentContacts);
+          setMessages(currentMessages);
+          setActiveContactId(updatedActiveContactId);
+
+          // Acknowledge and clear the server queue
+          await fetch('/api/webhooks/incoming-queue', { method: 'DELETE' });
+        }
+      } catch (err) {
+        console.error('Error polling webhook queue:', err);
+      }
+    }
+
+    const interval = setInterval(() => {
+      if (isPolling) checkWebhookQueue();
+    }, 3000);
+
+    // Initial check
+    checkWebhookQueue();
+
+    return () => {
+      isPolling = false;
+      clearInterval(interval);
+    };
+  }, [hasLoaded, contacts, messages, activeAccountId, activeContactId]);
+
   // Simulated Auto-Reply Engine when outgoing or incoming changes
   const triggerMockIncoming = (cId: string, text: string) => {
     const contact = contacts.find(c => c.id === cId);
