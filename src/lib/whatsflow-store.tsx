@@ -350,6 +350,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 // Prevent message duplicates safely
                 if (!currentMessages.some(m => m.id === newMsg.id)) {
                   currentMessages.push(newMsg);
+                  
+                  // Trigger Flow Builder automation matching engine immediately for live message
+                  if (contact.automationEnabled !== false) {
+                    setTimeout(() => {
+                      triggerMockIncoming(contact.id, item.body, true);
+                    }, 500);
+                  }
                 }
 
                 updatedActiveContactId = contact.id;
@@ -383,23 +390,24 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [hasLoaded, activeAccountId, activeContactId]);
 
-  // Simulated Auto-Reply Engine when outgoing or incoming changes
-  const triggerMockIncoming = (cId: string, text: string) => {
+  // Simulated & Live Auto-Reply Engine when outgoing or incoming changes
+  const triggerMockIncoming = (cId: string, text: string, isAlreadyInMessages = false) => {
     const contact = contacts.find(c => c.id === cId);
     if (!contact) return;
 
-    const newMsg: Message = {
-      id: `m-mock-${Date.now()}`,
-      accountId: activeAccountId,
-      contactId: cId,
-      type: 'text',
-      body: text,
-      direction: 'INCOMING',
-      status: 'read',
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, newMsg]);
+    if (!isAlreadyInMessages) {
+      const newMsg: Message = {
+        id: `m-mock-${Date.now()}`,
+        accountId: activeAccountId,
+        contactId: cId,
+        type: 'text',
+        body: text,
+        direction: 'INCOMING',
+        status: 'read',
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newMsg]);
+    }
 
     // Bypasses flow builder automation if disabled for this individual customer chat
     if (contact.automationEnabled === false) return;
@@ -536,11 +544,14 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           return;
         }
 
-        setMessages(prev => [...prev, {
+        const finalMsg = {
           ...replyMsg,
-          id: `m-mock-reply-${Date.now()}`,
+          id: `m-auto-reply-${Date.now()}`,
           timestamp: new Date().toISOString()
-        } as Message]);
+        } as Message;
+
+        setMessages(prev => [...prev, finalMsg]);
+        sendMessageToMeta(finalMsg, { templateId: targetActionNode.data.config?.templateId || 'welcome_onboarding' });
       }, 1200);
     }
   };
