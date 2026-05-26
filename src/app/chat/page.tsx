@@ -29,7 +29,8 @@ import {
   X,
   ShieldCheck,
   ShieldX,
-  History
+  History,
+  Trash2
 } from 'lucide-react';
 
 export default function ChatPage() {
@@ -45,7 +46,8 @@ export default function ChatPage() {
     sendDocumentMessage,
     sendVoiceMessage,
     updateContact,
-    addInteraction
+    addInteraction,
+    clearChat
   } = useWhatsFlow();
 
   const [isMounted, setIsMounted] = useState(false);
@@ -367,6 +369,19 @@ export default function ChatPage() {
                     </span>
                   )}
                 </button>
+
+                {/* Clear Chat Button */}
+                <button
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete all messages for this contact? This cannot be undone.")) {
+                      clearChat(activeContact.id);
+                    }
+                  }}
+                  className="text-[9px] px-2 py-0.5 rounded border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 hover:text-rose-400 font-bold uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                  title="Clear chat history"
+                >
+                  <Trash2 className="h-3 w-3 text-rose-400" /> Clear Chat
+                </button>
               </div>
             </div>
           </div>
@@ -466,8 +481,16 @@ export default function ChatPage() {
           {/* Dialog Log Bubble Canvas */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-950/40">
             {chatMessages.length === 0 ? (
-              <div className="h-full flex flex-col justify-center items-center text-center">
-                <span className="text-zinc-600 text-xs">Start a conversation by typing below</span>
+              <div className="h-full flex flex-col justify-center items-center text-center space-y-4 select-none">
+                <div className="h-12 w-12 rounded-full bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-550 shadow-md animate-pulse">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold text-zinc-300">Empty Chat Inbox</h3>
+                  <p className="text-[10px] text-zinc-500 max-w-[220px] mx-auto leading-normal">
+                    No active chat history found for this contact. Send your first message below or select templates to begin.
+                  </p>
+                </div>
               </div>
             ) : (
               chatMessages.map(msg => {

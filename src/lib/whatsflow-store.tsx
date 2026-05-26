@@ -116,6 +116,7 @@ interface WhatsFlowContextType {
   toggleWorkflowStatus: (id: string) => void;
   triggerMockIncoming: (contactId: string, body: string) => void;
   addInteraction: (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => void;
+  clearChat: (contactId: string) => void;
 }
 
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
@@ -772,6 +773,10 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }));
   };
 
+  const clearChat = (contactId: string) => {
+    setMessages(prev => prev.filter(m => m.contactId !== contactId));
+  };
+
   return (
     <WhatsFlowContext.Provider value={{
       accounts,
@@ -801,7 +806,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updateWorkflow,
       toggleWorkflowStatus,
       triggerMockIncoming,
-      addInteraction
+      addInteraction,
+      clearChat
     }}>
       {children}
     </WhatsFlowContext.Provider>
