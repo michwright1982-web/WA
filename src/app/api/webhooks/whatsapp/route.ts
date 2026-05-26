@@ -4,7 +4,6 @@ import path from 'path';
 
 const QUEUE_FILE_PATH = path.join(process.cwd(), 'src/app/api/webhooks/whatsapp/queue.json');
 
-// Ensure queue file exists
 function initQueue() {
   const dir = path.dirname(QUEUE_FILE_PATH);
   if (!fs.existsSync(dir)) {
@@ -51,25 +50,68 @@ export async function POST(request: Request) {
     const payload = await request.json();
     console.log('WhatsApp Webhook Event received:', JSON.stringify(payload, null, 2));
 
-    // Extract message, phone, and name from standard Meta webhook format
-    const entry = payload.entry?.[0];
-    const change = entry?.changes?.[0];
-    const value = change?.value;
-    
-    if (value && value.messages && value.messages.length > 0) {
-      const msg = value.messages[0];
-      const contactInfo = value.contacts?.[0];
-      
-      const incomingMessage = {
-        id: msg.id || `m-webhook-${Date.now()}`,
-        phoneNumber: msg.from, // e.g. "+15550192834" or "15550192834"
-        senderName: contactInfo?.profile?.name || 'WhatsApp Contact',
-        body: msg.text?.body || '[Media/Attachment received]',
-        timestamp: new Date(parseInt(msg.timestamp) * 1000).toISOString() || new Date().toISOString()
-      };
+    const entries = payload.entry || [];
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        const value = change.value;
+        if (!value) continue;
 
-      addToQueue(incomingMessage);
-      console.log('Successfully queued incoming message:', incomingMessage);
+        // Process status updates (delivery ticks, read states) to keep console aligned
+        if (value.statuses && value.statuses.length > 0) {
+          console.log('Processed message status update:', value.statuses[0]);
+        }
+
+        // Process incoming customer messages
+        if (value.messages && value.messages.length > 0) {
+          for (const msg of value.messages) {
+            // Locate contact display profile information matching the sender wa_id
+            const contactInfo = value.contacts?.find((c: any) => c.wa_id === msg.from) || value.contacts?.[0];
+            
+            // Extract the body of the message dynamically based on WhatsApp event type
+            let messageBody = '[Unrecognized message type]';
+            
+            if (msg.type === 'text') {
+              messageBody = msg.text?.body || '';
+            } else if (msg.type === 'button') {
+              messageBody = msg.button?.text || '';
+            } else if (msg.type === 'interactive') {
+              const interactiveType = msg.interactive?.type;
+              if (interactiveType === 'button_reply') {
+                messageBody = msg.interactive?.button_reply?.title || '';
+              } else if (interactiveType === 'list_reply') {
+                messageBody = msg.interactive?.list_reply?.title || '';
+              } else if (interactiveType === 'nfm_reply') {
+                // Flows response payloads
+                messageBody = '📝 Filled Booking Form Response';
+              }
+            } else if (msg.type === 'image') {
+              messageBody = '🖼️ [Image Attachment]';
+            } else if (msg.type === 'document') {
+              messageBody = `📄 Document: ${msg.document?.filename || 'Attachment.pdf'}`;
+            } else if (msg.type === 'audio' || msg.type === 'voice') {
+              messageBody = '🎙️ [Voice Message]';
+            } else if (msg.type === 'video') {
+              messageBody = '📹 [Video Attachment]';
+            } else if (msg.type === 'location') {
+              messageBody = '📍 [Shared Location Map]';
+            } else if (msg.type === 'contacts') {
+              messageBody = '👤 [Shared Contact Card]';
+            }
+
+            const incomingMessage = {
+              id: msg.id || `m-webhook-${Date.now()}`,
+              phoneNumber: msg.from.startsWith('+') ? msg.from : `+${msg.from}`, // Resilient standardized format
+              senderName: contactInfo?.profile?.name || `WhatsApp User (+${msg.from})`,
+              body: messageBody,
+              timestamp: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString()
+            };
+
+            addToQueue(incomingMessage);
+            console.log('Successfully queued parsed incoming message:', incomingMessage);
+          }
+        }
+      }
     }
 
     return NextResponse.json({ status: 'success' }, { status: 200 });
