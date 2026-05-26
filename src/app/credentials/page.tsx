@@ -146,9 +146,13 @@ export default function CredentialsPage() {
                     )}
                   </button>
                 </div>
-                <span className="text-[9px] bg-zinc-900 text-zinc-500 px-2 py-1 rounded font-bold uppercase tracking-wider">
+                <button 
+                  onClick={handleCopyWebhook}
+                  className="text-[9px] bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded font-bold uppercase tracking-wider transition-all cursor-pointer border border-zinc-800"
+                  title="Copy Webhook URL"
+                >
                   POST Endpoint
-                </span>
+                </button>
               </div>
             </div>
           </div>
