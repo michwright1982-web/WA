@@ -210,9 +210,8 @@ export default function ChatPage() {
               const isActive = ct.id === activeContactId;
               const contactMsgs = messages.filter(m => m.contactId === ct.id);
               const latestMsg = contactMsgs.length > 0 ? contactMsgs[contactMsgs.length - 1] : null;
-              // Count unread: incoming messages after the last outgoing message (simulate unseen)
-              const lastOutIdx = contactMsgs.map((m, i) => m.direction === 'OUTGOING' ? i : -1).filter(i => i !== -1).pop() ?? -1;
-              const unreadCount = isActive ? 0 : contactMsgs.slice(lastOutIdx + 1).filter(m => m.direction === 'INCOMING').length;
+              // Count unread: incoming messages that are not yet marked as 'read'
+              const unreadCount = isActive ? 0 : contactMsgs.filter(m => m.direction === 'INCOMING' && m.status !== 'read').length;
               const hasUnread = unreadCount > 0;
 
               const leadColor = ct.leadStatus === 'qualified'

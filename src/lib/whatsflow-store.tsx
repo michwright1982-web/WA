@@ -290,6 +290,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (hasLoaded) {
       localStorage.setItem('whatsflow_active_contact_id', activeContactId);
+      
+      // Automatically mark incoming messages as read when focusing the chat thread
+      setMessages(prev => prev.map(m => 
+        (m.contactId === activeContactId && m.direction === 'INCOMING' && m.status !== 'read')
+          ? { ...m, status: 'read' }
+          : m
+      ));
     }
   }, [activeContactId, hasLoaded]);
 
@@ -345,7 +352,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   type: 'text',
                   body: item.body,
                   direction: 'INCOMING',
-                  status: 'read',
+                  status: contact.id === activeContactId ? 'read' : 'delivered',
                   timestamp: item.timestamp || new Date().toISOString()
                 };
 
@@ -405,7 +412,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         type: 'text',
         body: text,
         direction: 'INCOMING',
-        status: 'read',
+        status: cId === activeContactId ? 'read' : 'delivered',
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, newMsg]);
