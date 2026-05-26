@@ -323,7 +323,6 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             setMessages(prevMessages => {
               let currentMessages = [...prevMessages];
-              let updatedActiveContactId = activeContactId;
 
               for (const item of incoming) {
                 const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
@@ -367,11 +366,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     }, 500);
                   }
                 }
-
-                updatedActiveContactId = contact.id;
               }
 
-              setActiveContactId(updatedActiveContactId);
               return currentMessages;
             });
 
