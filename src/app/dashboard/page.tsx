@@ -8,8 +8,7 @@ import {
   Send, 
   CheckCheck, 
   Activity, 
-  TrendingUp, 
-  ArrowUpRight, 
+  TrendingUp,
   Sparkles, 
   Smartphone, 
   Cpu 
