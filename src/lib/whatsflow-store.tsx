@@ -565,10 +565,10 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const acc = accounts.find(a => a.id === message.accountId);
     const targetContact = contacts.find(c => c.id === message.contactId);
 
-    // If no real account, or using mock secret indicators, bypass live send and run simulator
     const isMock = !acc || 
-      acc.accessToken.includes('EAAGb...') || 
-      acc.appSecret.includes('••••') ||
+      acc.accessToken === 'EAAGb...' || 
+      acc.accessToken.length < 20 ||
+      acc.appSecret === '••••••••••••••••' ||
       !targetContact;
 
     if (isMock) {
