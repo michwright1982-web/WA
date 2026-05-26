@@ -559,6 +559,77 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAccounts(prev => prev.filter(acc => acc.id !== id));
   };
 
+  // Generic Meta WhatsApp API Sender bridge
+  const sendMessageToMeta = async (message: Message, extraParams: Record<string, any> = {}) => {
+    // Locate credentials of the active account
+    const acc = accounts.find(a => a.id === message.accountId);
+    const targetContact = contacts.find(c => c.id === message.contactId);
+
+    // If no real account, or using mock secret indicators, bypass live send and run simulator
+    const isMock = !acc || 
+      acc.accessToken.includes('EAAGb...') || 
+      acc.appSecret.includes('••••') ||
+      !targetContact;
+
+    if (isMock) {
+      console.log('Using simulated offline sandbox mode for outgoing message.');
+      // Simulate delivery & read
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'delivered' } : m));
+      }, 800);
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'read' } : m));
+        // Trigger auto reply if automation is enabled for this contact
+        if (targetContact && targetContact.automationEnabled !== false) {
+          triggerMockIncoming(message.contactId, message.body);
+        }
+      }, 2000);
+      return;
+    }
+
+    try {
+      console.log('Attempting live Meta API outgoing dispatch for:', message);
+      const response = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          phoneNumberId: acc.phoneNumberId,
+          accessToken: acc.accessToken,
+          to: targetContact.phoneNumber,
+          body: message.body,
+          type: message.type,
+          mediaUrl: message.mediaUrl,
+          buttons: message.buttons,
+          ...extraParams
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to dispatch via Meta APIs');
+      }
+
+      console.log('Successfully dispatched live WhatsApp message:', data);
+      // Mark as sent successfully
+      setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'sent' } : m));
+      
+      // Auto deliver mock trigger
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'delivered' } : m));
+      }, 1000);
+    } catch (err: any) {
+      console.error('Meta Dispatch failed:', err);
+      // Flag message as failed in the UI to notify the user
+      setMessages(prev => prev.map(m => m.id === message.id ? { 
+        ...m, 
+        status: 'failed', 
+        body: `${m.body}\n⚠️ (Delivery Failed: ${err.message || 'Check credentials / recipient number'})` 
+      } : m));
+    }
+  };
+
   const sendTextMessage = (cId: string, body: string) => {
     const newMsg: Message = {
       id: `m-send-${Date.now()}`,
@@ -571,19 +642,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-
-    // Simulate delivery & read
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'delivered' } : m));
-    }, 800);
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'read' } : m));
-      // Trigger a mock auto reply if flow builder automation is turned on for this contact
-      const currentContact = contacts.find(c => c.id === cId);
-      if (currentContact && currentContact.automationEnabled !== false) {
-        triggerMockIncoming(cId, body);
-      }
-    }, 2000);
+    sendMessageToMeta(newMsg);
   };
 
   const sendMediaMessage = (cId: string, mediaUrl: string, body: string) => {
@@ -599,6 +658,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
+    sendMessageToMeta(newMsg);
   };
 
   const sendDocumentMessage = (cId: string, mediaUrl: string, fileName: string) => {
@@ -614,12 +674,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'delivered' } : m));
-    }, 800);
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'read' } : m));
-    }, 2000);
+    sendMessageToMeta(newMsg);
   };
 
   const sendVoiceMessage = (cId: string, mediaUrl: string, duration: string) => {
@@ -635,12 +690,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'delivered' } : m));
-    }, 800);
-    setTimeout(() => {
-      setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, status: 'read' } : m));
-    }, 2000);
+    sendMessageToMeta(newMsg);
   };
 
   const sendButtonMessage = (cId: string, body: string, buttons: string[]) => {
@@ -656,6 +706,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
+    sendMessageToMeta(newMsg);
   };
 
   const sendTemplateMessage = (cId: string, templateId: string) => {
@@ -674,6 +725,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
+    sendMessageToMeta(newMsg, { templateId: tmpl.name });
   };
 
   const addContact = (ct: Omit<Contact, 'id'>) => {
