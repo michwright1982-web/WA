@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  TEAM_MEMBER
+  CLIENT
+}
+
+enum TemplateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WorkflowStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          Role      @default(CLIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      WhatsAppCredential[]
+}
+
+model WhatsAppCredential {
+  id                 String    @id @default(uuid())
+  name               String    // e.g. "Main Business Account"
+  appId              String
+  appSecret          String
+  accessToken        String
+  phoneNumberId      String
+  businessAccountId  String
+  webhookVerifyToken String
+  status             String    @default("CONNECTED") // CONNECTED, DISCONNECTED, ERROR
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  messages           Message[]
+  templates          Template[]
+  workflows          Workflow[]
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  contacts  Contact[]
+}
+
+model Contact {
+  id          String    @id @default(uuid())
+  phoneNumber String    @unique
+  name        String
+  email       String?
+  customFields Json?     // JSON object for additional custom fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tags        Tag[]
+  messages    Message[]
+}
+
+model Message {
+  id           String             @id @default(uuid())
+  waMessageId  String?            @unique // Meta WhatsApp message ID
+  accountId    String
+  account      WhatsAppCredential @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contactId    String
+  contact      Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  type         String             // text, image, document, button, list, template
+  body         String
+  direction    String             // INCOMING, OUTGOING
+  status       String             // sent, delivered, read, failed
+  timestamp    DateTime           @default(now())
+  scheduledFor DateTime?
+}
+
+model Template {
+  id            String             @id @default(uuid())
+  accountId     String
+  account       WhatsAppCredential @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name          String
+  category      String             // UTILITY, MARKETING, AUTHENTICATION
+  language      String             @default("en_US")
+  status        TemplateStatus     @default(PENDING)
+  bodyText      String
+  buttons       Json?              // JSON array of buttons
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Workflow {
+  id          String             @id @default(uuid())
+  accountId   String
+  account     WhatsAppCredential @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name        String
+  status      WorkflowStatus     @default(INACTIVE)
+  nodes       Json               // Flow editor nodes
+  edges       Json               // Flow editor edges
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  payload   Json
+  status    String   // PROCESSED, FAILED
+  attempts  Int      @default(1)
+  errorMsg  String?
+  createdAt DateTime @default(now())
+}
