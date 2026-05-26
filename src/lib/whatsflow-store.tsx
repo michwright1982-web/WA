@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 // Interfaces
 export interface WhatsAppAccount {
@@ -122,6 +122,8 @@ interface WhatsFlowContextType {
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
 
 export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const triggerMockIncomingRef = useRef<any>(null);
+
   // Pre-seed some realistic records
   const [accounts, setAccounts] = useState<WhatsAppAccount[]>([
     {
@@ -354,7 +356,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   // Trigger Flow Builder automation matching engine immediately for live message
                   if (contact.automationEnabled !== false) {
                     setTimeout(() => {
-                      triggerMockIncoming(contact.id, item.body, true);
+                      triggerMockIncomingRef.current?.(contact.id, item.body, true);
                     }, 500);
                   }
                 }
@@ -555,6 +557,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }, 1200);
     }
   };
+  triggerMockIncomingRef.current = triggerMockIncoming;
 
   const addAccount = (acc: Omit<WhatsAppAccount, 'id' | 'status' | 'createdAt'>) => {
     const newAcc: WhatsAppAccount = {
