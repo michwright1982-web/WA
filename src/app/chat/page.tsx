@@ -61,7 +61,7 @@ export default function ChatPage() {
   // Document sharing state
   const [showDocModal, setShowDocModal] = useState(false);
   const [docName, setDocName] = useState('');
-  // const [docUrl, setDocUrl] = useState(''); // removed public link
+
   const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
 
   // Interaction modal state
@@ -146,15 +146,11 @@ export default function ChatPage() {
       sendDocumentMessage(activeContactId, objectUrl, name);
       // Revoke URL after short delay
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-    } else if (docName && docUrl) {
-      // Fallback to manual URL entry
-      sendDocumentMessage(activeContactId, docUrl, docName);
     }
     // Reset state and close modal
     setShowDocModal(false);
     setSelectedDocFile(null);
     setDocName('');
-    setDocUrl('');
   };
 
   const handleSendText = (e: React.FormEvent) => {
