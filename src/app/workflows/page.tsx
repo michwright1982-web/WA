@@ -295,6 +295,45 @@ export default function WorkflowsPage() {
     });
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    if (activeNodeId) return; // Block when popup is open
+
+    // Prevent default browser zooming/scrolling
+    // Note: React synthetic wheel events might be passive, but we'll try to prevent default anyway.
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      // Pinch to zoom (trackpad) or Cmd/Ctrl + Scroll
+      const zoomSensitivity = 0.01;
+      let newZoom = zoom - e.deltaY * zoomSensitivity;
+      newZoom = Math.max(0.2, Math.min(3, newZoom)); // Clamp zoom between 0.2x and 3x
+
+      // Calculate mouse position relative to the canvas
+      const canvas = document.getElementById('flow-canvas');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Keep the point under the cursor in the same place
+        const scaleChange = newZoom - zoom;
+        const newOffsetX = panOffset.x - ((mouseX - panOffset.x) * (scaleChange / zoom));
+        const newOffsetY = panOffset.y - ((mouseY - panOffset.y) * (scaleChange / zoom));
+
+        setZoom(newZoom);
+        setPanOffset({ x: newOffsetX, y: newOffsetY });
+      }
+    } else {
+      // Two-finger trackpad drag for panning
+      setPanOffset(prev => ({
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY
+      }));
+    }
+  };
+
   const handleNodeMouseUp = (e: React.MouseEvent, targetId: string) => {
     if (connectingSourceId && connectingSourceId !== targetId) {
       e.stopPropagation();
@@ -568,6 +607,7 @@ export default function WorkflowsPage() {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
             className="flex-1 border border-zinc-800 rounded-2xl bg-zinc-950/60 relative overflow-hidden bg-grid-pattern shadow-inner flex flex-col justify-between cursor-grab active:cursor-grabbing"
           >
             
