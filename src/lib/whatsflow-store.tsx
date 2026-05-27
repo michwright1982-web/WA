@@ -382,7 +382,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               messagesToAutomate.forEach(msg => {
                 triggerMockIncomingRef.current?.(msg.contactId, msg.body, true, msg.msgType);
               });
-            }, 800);
+            }, 100);
           }
 
           // Acknowledge and clear the server queue
@@ -395,7 +395,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const interval = setInterval(() => {
       if (isPolling) checkWebhookQueue();
-    }, 3000);
+    }, 1000);
 
     // Initial check
     checkWebhookQueue();
@@ -406,6 +406,15 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [hasLoaded, activeAccountId, activeContactId]);
 
+  // Refs to avoid stale closures in asynchronous webhook polling
+  const contactsRef = useRef(contacts);
+  const workflowsRef = useRef(workflows);
+
+  useEffect(() => {
+    contactsRef.current = contacts;
+    workflowsRef.current = workflows;
+  }, [contacts, workflows]);
+
   // Simulated & Live Auto-Reply Engine when outgoing or incoming changes
   const triggerMockIncoming = (
     cId: string, 
@@ -413,7 +422,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     isAlreadyInMessages = false, 
     type: 'text' | 'button' | 'image' | 'document' | 'voice' = 'text'
   ) => {
-    const contact = contacts.find(c => c.id === cId);
+    // Read from refs to guarantee freshest state even if React hasn't finished rendering the newest contacts
+    const currentContacts = contactsRef.current;
+    const currentWorkflows = workflowsRef.current;
+
+    const contact = currentContacts.find(c => c.id === cId);
     if (!contact) return;
 
     if (!isAlreadyInMessages) {
@@ -434,7 +447,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (contact.automationEnabled === false) return;
 
     // Find active workflow (running) or fall back to the first workflow
-    const activeWorkflow = workflows.find(w => w.status === 'ACTIVE') || workflows[0];
+    const activeWorkflow = currentWorkflows.find(w => w.status === 'ACTIVE') || currentWorkflows[0];
     if (!activeWorkflow) return;
 
     // Execute flow builder canvas nodes dynamically based on active connections
@@ -641,7 +654,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
           sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
         }
-      }, 1200);
+      }, 50);
     }
   };
   triggerMockIncomingRef.current = triggerMockIncoming;
