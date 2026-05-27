@@ -122,116 +122,115 @@ interface WhatsFlowContextType {
 
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
 
+// Default seed data — used only as fallback when localStorage is empty (first visit)
+const SEED_ACCOUNTS: WhatsAppAccount[] = [
+  {
+    id: 'acc-1',
+    name: 'Main Business Account',
+    appId: '984719472948',
+    appSecret: '••••••••••••••••',
+    accessToken: 'EAAGb...',
+    phoneNumberId: '10938472941',
+    businessAccountId: '394829348',
+    webhookVerifyToken: 'whatsflow_verify_token_123',
+    status: 'CONNECTED',
+    createdAt: '2026-05-01T08:00:00Z'
+  },
+  {
+    id: 'acc-2',
+    name: 'Support Line Beta',
+    appId: '827491038472',
+    appSecret: '••••••••••••••••',
+    accessToken: 'EAAGb...',
+    phoneNumberId: '20394829384',
+    businessAccountId: '482938492',
+    webhookVerifyToken: 'support_verify_token',
+    status: 'CONNECTED',
+    createdAt: '2026-05-15T12:00:00Z'
+  }
+];
+
+const SEED_CONTACTS: Contact[] = [
+  { id: 'c-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', email: 'alex@rivera.com', tags: ['VIP', 'Lead'], status: 'active', leadStatus: 'qualified', interactions: [
+    { id: 'int-1', date: '2026-05-24', medium: 'whatsapp', notes: 'Discussed pricing tiers and enterprise plan.', createdAt: '2026-05-24T10:30:00Z' },
+    { id: 'int-2', date: '2026-05-25', medium: 'phone', notes: 'Follow-up call: confirmed interest in premium tier.', createdAt: '2026-05-25T14:15:00Z' }
+  ] },
+  { id: 'c-2', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', email: 'sam@chen.design', tags: ['Customer'], status: 'active', leadStatus: 'new', interactions: [] },
+  { id: 'c-3', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', email: 'marcus.j@enterprise.com', tags: ['Team Member'], status: 'active', leadStatus: 'qualified', interactions: [] },
+  { id: 'c-4', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', email: 'clara@tardis.io', tags: ['Lead'], status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
+];
+
+const SEED_MESSAGES: Message[] = [
+  { id: 'm-1', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hello! Welcome to WhatsFlow. How can we help you today?', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:00:00Z' },
+  { id: 'm-2', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hi there! I am interested in connecting my WhatsApp API. Is it simple?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:02:00Z' },
+  { id: 'm-3', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Yes, absolutely. You can set it up in under 5 minutes from our dashboard!', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:03:00Z' },
+  { id: 'm-4', accountId: 'acc-1', contactId: 'c-2', type: 'text', body: 'Can we schedule a call for tomorrow?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:15:00Z' }
+];
+
+const SEED_TEMPLATES: Template[] = [
+  { id: 't-1', name: 'welcome_onboarding', category: 'MARKETING', language: 'en_US', status: 'APPROVED', bodyText: 'Hi {{1}}, welcome aboard! We are excited to support your communication journey.', buttons: ['Get Started', 'Contact Sales'], createdAt: '2026-05-20T10:00:00Z' },
+  { id: 't-2', name: 'payment_reminder', category: 'UTILITY', language: 'en_US', status: 'APPROVED', bodyText: 'Dear {{1}}, this is a quick reminder that invoice {{2}} is due tomorrow. Total: {{3}}.', createdAt: '2026-05-22T14:30:00Z' },
+  { id: 't-3', name: 'verification_otp', category: 'AUTHENTICATION', language: 'en_US', status: 'APPROVED', bodyText: 'Your WhatsFlow verification code is: {{1}}. Do not share this code.', createdAt: '2026-05-25T09:12:00Z' }
+];
+
+const SEED_WORKFLOWS: Workflow[] = [
+  {
+    id: 'w-1',
+    name: 'AI Agent Auto-Responder',
+    status: 'ACTIVE',
+    nodes: [
+      { id: '1', type: 'triggerNode', position: { x: 100, y: 150 }, data: { label: 'Incoming Message', description: 'Triggers when a message is received' } },
+      { id: '2', type: 'conditionNode', position: { x: 350, y: 150 }, data: { label: 'Keyword Check', description: 'Checks if contains "pricing"', config: { keyword: 'pricing' } } },
+      { id: '3', type: 'actionNode', position: { x: 600, y: 80 }, data: { label: 'AI Response', description: 'Generate smart response using AI', config: { prompt: 'Explain enterprise tier' } } },
+      { id: '4', type: 'actionNode', position: { x: 600, y: 280 }, data: { label: 'Send Template', description: 'Send Welcome Template', config: { templateId: 't-1' } } }
+    ],
+    edges: [
+      { id: 'e-1-2', source: '1', target: '2' },
+      { id: 'e-2-3', source: '2', target: '3' },
+      { id: 'e-2-4', source: '2', target: '4' }
+    ],
+    createdAt: '2026-05-24T15:00:00Z'
+  }
+];
+
 export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const triggerMockIncomingRef = useRef<any>(null);
 
-  // Pre-seed some realistic records
-  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([
-    {
-      id: 'acc-1',
-      name: 'Main Business Account',
-      appId: '984719472948',
-      appSecret: '••••••••••••••••',
-      accessToken: 'EAAGb...',
-      phoneNumberId: '10938472941',
-      businessAccountId: '394829348',
-      webhookVerifyToken: 'whatsflow_verify_token_123',
-      status: 'CONNECTED',
-      createdAt: '2026-05-01T08:00:00Z'
-    },
-    {
-      id: 'acc-2',
-      name: 'Support Line Beta',
-      appId: '827491038472',
-      appSecret: '••••••••••••••••',
-      accessToken: 'EAAGb...',
-      phoneNumberId: '20394829384',
-      businessAccountId: '482938492',
-      webhookVerifyToken: 'support_verify_token',
-      status: 'CONNECTED',
-      createdAt: '2026-05-15T12:00:00Z'
-    }
-  ]);
-
-  const [contacts, setContacts] = useState<Contact[]>([
-    { id: 'c-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', email: 'alex@rivera.com', tags: ['VIP', 'Lead'], status: 'active', leadStatus: 'qualified', interactions: [
-      { id: 'int-1', date: '2026-05-24', medium: 'whatsapp', notes: 'Discussed pricing tiers and enterprise plan.', createdAt: '2026-05-24T10:30:00Z' },
-      { id: 'int-2', date: '2026-05-25', medium: 'phone', notes: 'Follow-up call: confirmed interest in premium tier.', createdAt: '2026-05-25T14:15:00Z' }
-    ] },
-    { id: 'c-2', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', email: 'sam@chen.design', tags: ['Customer'], status: 'active', leadStatus: 'new', interactions: [] },
-    { id: 'c-3', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', email: 'marcus.j@enterprise.com', tags: ['Team Member'], status: 'active', leadStatus: 'qualified', interactions: [] },
-    { id: 'c-4', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', email: 'clara@tardis.io', tags: ['Lead'], status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
-  ]);
-
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'm-1', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hello! Welcome to WhatsFlow. How can we help you today?', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:00:00Z' },
-    { id: 'm-2', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hi there! I am interested in connecting my WhatsApp API. Is it simple?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:02:00Z' },
-    { id: 'm-3', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Yes, absolutely. You can set it up in under 5 minutes from our dashboard!', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:03:00Z' },
-    { id: 'm-4', accountId: 'acc-1', contactId: 'c-2', type: 'text', body: 'Can we schedule a call for tomorrow?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:15:00Z' }
-  ]);
-
-  const [templates, setTemplates] = useState<Template[]>([
-    { id: 't-1', name: 'welcome_onboarding', category: 'MARKETING', language: 'en_US', status: 'APPROVED', bodyText: 'Hi {{1}}, welcome aboard! We are excited to support your communication journey.', buttons: ['Get Started', 'Contact Sales'], createdAt: '2026-05-20T10:00:00Z' },
-    { id: 't-2', name: 'payment_reminder', category: 'UTILITY', language: 'en_US', status: 'APPROVED', bodyText: 'Dear {{1}}, this is a quick reminder that invoice {{2}} is due tomorrow. Total: {{3}}.', createdAt: '2026-05-22T14:30:00Z' },
-    { id: 't-3', name: 'verification_otp', category: 'AUTHENTICATION', language: 'en_US', status: 'APPROVED', bodyText: 'Your WhatsFlow verification code is: {{1}}. Do not share this code.', createdAt: '2026-05-25T09:12:00Z' }
-  ]);
-
-  const [workflows, setWorkflows] = useState<Workflow[]>([
-    {
-      id: 'w-1',
-      name: 'AI Agent Auto-Responder',
-      status: 'ACTIVE',
-      nodes: [
-        { id: '1', type: 'triggerNode', position: { x: 100, y: 150 }, data: { label: 'Incoming Message', description: 'Triggers when a message is received' } },
-        { id: '2', type: 'conditionNode', position: { x: 350, y: 150 }, data: { label: 'Keyword Check', description: 'Checks if contains "pricing"', config: { keyword: 'pricing' } } },
-        { id: '3', type: 'actionNode', position: { x: 600, y: 80 }, data: { label: 'AI Response', description: 'Generate smart response using AI', config: { prompt: 'Explain enterprise tier' } } },
-        { id: '4', type: 'actionNode', position: { x: 600, y: 280 }, data: { label: 'Send Template', description: 'Send Welcome Template', config: { templateId: 't-1' } } }
-      ],
-      edges: [
-        { id: 'e-1-2', source: '1', target: '2' },
-        { id: 'e-2-3', source: '2', target: '3' },
-        { id: 'e-2-4', source: '2', target: '4' }
-      ],
-      createdAt: '2026-05-24T15:00:00Z'
-    }
-  ]);
-
-  const [activeAccountId, setActiveAccountId] = useState<string>('acc-1');
-  const [activeContactId, setActiveContactId] = useState<string>('c-1');
+  // Start with empty state — real data loads from localStorage (or seed fallback) in useEffect
+  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [activeAccountId, setActiveAccountId] = useState<string>('');
+  const [activeContactId, setActiveContactId] = useState<string>('');
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount — fall back to seed data on first visit
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedAccounts = localStorage.getItem('whatsflow_accounts');
-      if (storedAccounts) {
-        try { setAccounts(JSON.parse(storedAccounts)); } catch (e) {}
-      }
+      try { setAccounts(storedAccounts ? JSON.parse(storedAccounts) : SEED_ACCOUNTS); } catch (e) { setAccounts(SEED_ACCOUNTS); }
+
       const storedContacts = localStorage.getItem('whatsflow_contacts');
-      if (storedContacts) {
-        try { setContacts(JSON.parse(storedContacts)); } catch (e) {}
-      }
+      try { setContacts(storedContacts ? JSON.parse(storedContacts) : SEED_CONTACTS); } catch (e) { setContacts(SEED_CONTACTS); }
+
       const storedMessages = localStorage.getItem('whatsflow_messages');
-      if (storedMessages) {
-        try { setMessages(JSON.parse(storedMessages)); } catch (e) {}
-      }
+      try { setMessages(storedMessages ? JSON.parse(storedMessages) : SEED_MESSAGES); } catch (e) { setMessages(SEED_MESSAGES); }
+
       const storedTemplates = localStorage.getItem('whatsflow_templates');
-      if (storedTemplates) {
-        try { setTemplates(JSON.parse(storedTemplates)); } catch (e) {}
-      }
+      try { setTemplates(storedTemplates ? JSON.parse(storedTemplates) : SEED_TEMPLATES); } catch (e) { setTemplates(SEED_TEMPLATES); }
+
       const storedWorkflows = localStorage.getItem('whatsflow_workflows');
-      if (storedWorkflows) {
-        try { setWorkflows(JSON.parse(storedWorkflows)); } catch (e) {}
-      }
+      try { setWorkflows(storedWorkflows ? JSON.parse(storedWorkflows) : SEED_WORKFLOWS); } catch (e) { setWorkflows(SEED_WORKFLOWS); }
+
       const storedActiveAccountId = localStorage.getItem('whatsflow_active_account_id');
-      if (storedActiveAccountId) {
-        setActiveAccountId(storedActiveAccountId);
-      }
+      setActiveAccountId(storedActiveAccountId || 'acc-1');
+
       const storedActiveContactId = localStorage.getItem('whatsflow_active_contact_id');
-      if (storedActiveContactId) {
-        setActiveContactId(storedActiveContactId);
-      }
+      setActiveContactId(storedActiveContactId || 'c-1');
+
       setHasLoaded(true);
     }
   }, []);
@@ -831,7 +830,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       addInteraction,
       clearChat
     }}>
-      {children}
+      {hasLoaded ? children : null}
     </WhatsFlowContext.Provider>
   );
 };
