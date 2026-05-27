@@ -38,22 +38,6 @@ export async function POST(request: Request) {
           }
         ];
       }
-      if (buttons && buttons.length > 0) {
-        payload.template.components = payload.template.components || [];
-        buttons.forEach((btn: string, index: number) => {
-          payload.template.components.push({
-            type: 'button',
-            sub_type: 'quick_reply',
-            index: index,
-            parameters: [
-              {
-                type: 'payload',
-                payload: btn
-              }
-            ]
-          });
-        });
-      }
     } else if (type === 'image' && mediaUrl) {
       payload.type = 'image';
       payload.image = {

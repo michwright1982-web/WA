@@ -166,6 +166,7 @@ export function executeWorkflow(
       let templateName = 'welcome_onboarding';
       let templateLanguage = 'en_US';
 
+      let templateParams: string[] = [];
       if (targetActionNode.data.config?.templateId) {
         const tmpl = templates.find((t: any) => t.id === targetActionNode!.data.config!.templateId);
         if (tmpl) {
@@ -175,6 +176,17 @@ export function executeWorkflow(
           if (tmpl.buttons && tmpl.buttons.length > 0) {
             buttons = tmpl.buttons;
           }
+          
+          if (tmpl.bodyText.includes('{{')) {
+            const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
+            if (matches) {
+              matches.forEach((match: string, index: number) => {
+                if (index === 0) templateParams.push(templateParam);
+                else templateParams.push(`Value${index + 1}`);
+              });
+            }
+          }
+          
           bodyText = bodyText.replace('{{1}}', templateParam);
           bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
         } else {
@@ -189,7 +201,7 @@ export function executeWorkflow(
         body: bodyText,
         templateName,
         templateLanguage,
-        templateParams: [templateParam],
+        templateParams,
         buttons
       };
     } else {
@@ -279,22 +291,6 @@ export async function sendWhatsAppMessage(
         type: 'body',
         parameters: msg.templateParams.map(p => ({ type: 'text', text: p }))
       }];
-    }
-    if (msg.buttons && msg.buttons.length > 0) {
-      payload.template.components = payload.template.components || [];
-      msg.buttons.forEach((btn: string, index: number) => {
-        payload.template.components.push({
-          type: 'button',
-          sub_type: 'quick_reply',
-          index: index,
-          parameters: [
-            {
-              type: 'payload',
-              payload: btn
-            }
-          ]
-        });
-      });
     }
   } else if (msg.type === 'button' && msg.buttons && msg.buttons.length > 0) {
     payload.type = 'interactive';
