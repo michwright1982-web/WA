@@ -17,12 +17,12 @@ import {
 export default function DashboardPage() {
   const { accounts, contacts, messages, templates, workflows } = useWhatsFlow();
 
-  // Statistics summaries
+  // Real-time statistics derived from stored messages
   const totalSent = messages.filter(m => m.direction === 'OUTGOING').length;
   const totalReceived = messages.filter(m => m.direction === 'INCOMING').length;
   const readMessages = messages.filter(m => m.status === 'read').length;
-  const readRate = totalSent > 0 ? Math.round((readMessages / messages.length) * 100) : 88;
-  const deliveryRate = totalSent > 0 ? 98 : 95;
+  const readRate = totalSent > 0 ? Math.round((readMessages / totalSent) * 100) : 0;
+  const deliveryRate = totalSent > 0 ? Math.round((messages.filter(m => m.status === 'delivered').length / totalSent) * 100) : 0;
 
   return (
     <DashboardShell>
@@ -98,32 +98,37 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Custom high-fidelity bar grid */}
+            {/* Real message volume per day (last 7 days) */}
             <div className="h-60 flex flex-col justify-between">
               <div className="flex-1 grid grid-cols-7 gap-4 items-end pb-4 border-b border-zinc-800/80">
-                {[
-                  { day: 'Mon', outVal: '60%', inVal: '40%' },
-                  { day: 'Tue', outVal: '75%', inVal: '30%' },
-                  { day: 'Wed', outVal: '90%', inVal: '65%' },
-                  { day: 'Thu', outVal: '50%', inVal: '45%' },
-                  { day: 'Fri', outVal: '85%', inVal: '70%' },
-                  { day: 'Sat', outVal: '40%', inVal: '20%' },
-                  { day: 'Sun', outVal: '95%', inVal: '80%' },
-                ].map((item, idx) => (
-                  <div key={idx} className="h-full flex flex-col justify-end items-center group relative cursor-pointer">
-                    
-                    {/* Tooltip */}
-                    <div className="absolute top-[-25px] bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                      O: {item.outVal} | I: {item.inVal}
+                {(() => {
+                  // Compute daily stats for last 7 days
+                  const now = new Date();
+                  const days = Array.from({ length: 7 }).map((_, i) => {
+                    const date = new Date(now);
+                    date.setDate(now.getDate() - (6 - i)); // oldest first
+                    const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayKey = date.toISOString().split('T')[0];
+                    const outCount = messages.filter(m => m.direction === 'OUTGOING' && m.timestamp?.startsWith(dayKey)).length;
+                    const inCount = messages.filter(m => m.direction === 'INCOMING' && m.timestamp?.startsWith(dayKey)).length;
+                    const total = outCount + inCount || 1;
+                    const outVal = `${Math.round((outCount / total) * 100)}%`;
+                    const inVal = `${Math.round((inCount / total) * 100)}%`;
+                    return { day: dayLabel, outVal, inVal };
+                  });
+                  return days.map((item, idx) => (
+                    <div key={idx} className="h-full flex flex-col justify-end items-center group relative cursor-pointer">
+                      <div className="absolute top-[-25px] bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        O: {item.outVal} | I: {item.inVal}
+                      </div>
+                      <div className="w-full flex items-end gap-1.5 h-full">
+                        <div className="w-1/2 bg-white rounded-t-sm" style={{ height: item.outVal }} />
+                        <div className="w-1/2 bg-zinc-700 rounded-t-sm" style={{ height: item.inVal }} />
+                      </div>
+                      <span className="text-[10px] text-zinc-500 font-semibold mt-2">{item.day}</span>
                     </div>
-
-                    <div className="w-full flex items-end gap-1.5 h-full">
-                      <div className="w-1/2 bg-white rounded-t-sm" style={{ height: item.outVal }} />
-                      <div className="w-1/2 bg-zinc-700 rounded-t-sm" style={{ height: item.inVal }} />
-                    </div>
-                    <span className="text-[10px] text-zinc-500 font-semibold mt-2">{item.day}</span>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
           </div>
@@ -167,24 +172,20 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <div className="glow-card bg-zinc-900/40 rounded-xl p-6 backdrop-blur-md">
-            <h3 className="text-sm font-semibold text-zinc-200 mb-4">Latest Webhook Events</h3>
+            <h3 className="text-sm font-semibold text-zinc-200 mb-4">Recent Message Events (real data)</h3>
             <div className="space-y-3">
-              {[
-                { time: 'Just Now', event: 'messages.received', status: 'PROCESSED', desc: 'Message ID: wamid.HBgLMTU...' },
-                { time: '3 mins ago', event: 'messages.delivered', status: 'PROCESSED', desc: 'Message ID: wamid.HBgLMTU...' },
-                { time: '12 mins ago', event: 'message_template_status_update', status: 'PROCESSED', desc: 'Template: welcome_onboarding APPROVED' },
-              ].map((ev, idx) => (
+              {messages.slice(-5).reverse().map((msg, idx) => (
                 <div key={idx} className="flex justify-between items-start p-2.5 rounded bg-zinc-950/40 border border-zinc-800/50">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-zinc-300">{ev.event}</span>
+                      <span className="text-xs font-semibold text-zinc-300">{msg.direction === 'INCOMING' ? 'messages.received' : 'messages.sent'}</span>
                       <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 rounded-sm font-bold">
-                        {ev.status}
+                        {msg.status?.toUpperCase() || 'UNKNOWN'}
                       </span>
                     </div>
-                    <p className="text-[10px] text-zinc-500 mt-1">{ev.desc}</p>
+                    <p className="text-[10px] text-zinc-500 mt-1 truncate">{msg.body?.slice(0, 40) || '(no content)'}</p>
                   </div>
-                  <span className="text-[10px] text-zinc-500">{ev.time}</span>
+                  <span className="text-[10px] text-zinc-500">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               ))}
             </div>
