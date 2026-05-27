@@ -543,10 +543,10 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              chatMessages.map(msg => {
+              chatMessages.map((msg, index) => {
                 const isOutgoing = msg.direction === 'OUTGOING';
                 return (
-                  <div key={msg.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                  <div key={`${msg.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] rounded-xl p-3.5 shadow-sm border ${
                       isOutgoing 
                         ? 'bg-white text-black border-zinc-200' 
@@ -816,6 +816,18 @@ export default function ChatPage() {
                 onChange={(e) => setTypedMessage(e.target.value)}
                 className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
               />
+              <button 
+                type="button"
+                onClick={() => {
+                  if (!typedMessage.trim()) return;
+                  triggerMockIncoming(activeContactId, typedMessage.trim(), false, 'text');
+                  setTypedMessage('');
+                }}
+                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl font-medium text-[10px] transition-colors flex items-center justify-center border border-indigo-500/30 whitespace-nowrap"
+                title="Test your workflow by simulating an incoming customer message"
+              >
+                Simulate Customer
+              </button>
               <button 
                 type="submit"
                 className="h-10 w-10 bg-white text-black hover:bg-zinc-200 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md"

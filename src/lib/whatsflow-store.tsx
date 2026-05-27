@@ -427,6 +427,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!activeWorkflow) return;
 
     // Execute flow builder canvas nodes dynamically based on active connections
+    console.log('[DEBUG] triggerMockIncoming:', { activeWorkflowId: activeWorkflow?.id, activeWorkflowName: activeWorkflow?.name, text, type, cId });
     // Find the trigger node that matches the incoming message type
     const expectedSubType = type === 'button' ? 'incoming_button' 
                           : type === 'image' || type === 'document' || type === 'voice' ? 'incoming_media' 
@@ -523,6 +524,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!targetActionNode) {
       targetActionNode = activeWorkflow.nodes.find(n => n.type === 'actionNode');
     }
+
+    console.log('[DEBUG] Resolved targetActionNode:', targetActionNode?.id, targetActionNode?.data?.config);
 
     // Execute resolved action node configurations matching Meta API specs
     if (targetActionNode) {
@@ -870,7 +873,17 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const toggleWorkflowStatus = (id: string) => {
     setWorkflows(prev => {
-      const next = prev.map(w => w.id === id ? { ...w, status: (w.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE') as 'ACTIVE' | 'INACTIVE' } : w);
+      const targetWorkflow = prev.find(w => w.id === id);
+      const isBecomingActive = targetWorkflow?.status !== 'ACTIVE';
+      const next = prev.map(w => {
+        if (w.id === id) {
+          return { ...w, status: isBecomingActive ? 'ACTIVE' : 'INACTIVE' };
+        }
+        if (isBecomingActive && w.status === 'ACTIVE') {
+          return { ...w, status: 'INACTIVE' };
+        }
+        return w;
+      });
       localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
       return next;
     });
