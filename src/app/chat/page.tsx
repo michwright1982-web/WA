@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { useWhatsFlow } from '@/lib/whatsflow-store';
 import { 
@@ -144,6 +144,12 @@ export default function ChatPage() {
 
   const activeContact = contacts.find(c => c.id === activeContactId) || contacts[0];
   const chatMessages = messages.filter(m => m.contactId === activeContactId);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const filteredContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -680,6 +686,7 @@ export default function ChatPage() {
                 );
               })
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Dialog Action bar */}
