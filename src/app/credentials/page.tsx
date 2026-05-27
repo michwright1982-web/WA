@@ -30,8 +30,8 @@ export default function CredentialsPage() {
   const [businessId, setBusinessId] = useState('');
   const [verifyToken, setVerifyToken] = useState('');
 
-  const [copied, setCopied] = useState(false);
   const domain = typeof window !== 'undefined' ? window.location.origin : '';
+
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(`${domain}/api/webhooks/whatsapp`);
@@ -130,31 +130,31 @@ export default function CredentialsPage() {
                 To receive incoming customer conversations and message read statuses in real-time, copy the URL below and paste it into the Webhooks section of your Facebook Developer App.
               </p>
               
-              <div className="flex items-center gap-3 pt-2">
-                <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden border-glow">
-                  <div className="px-3 py-1.5 font-mono text-[10px] text-zinc-400 select-all">
-                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp
+                              <div className="flex items-center gap-3 pt-2">
+                  <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden border-glow">
+                    <div className="px-3 py-1.5 font-mono text-[10px] text-zinc-400 select-all">
+                      {domain}/api/webhooks/whatsapp
+                    </div>
+                    <button 
+                      onClick={handleCopyWebhook}
+                      className="border-l border-zinc-850 p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition-colors flex items-center justify-center h-full"
+                      title="Copy Webhook URL"
+                    >
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                   </div>
                   <button 
                     onClick={handleCopyWebhook}
-                    className="border-l border-zinc-850 p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition-colors flex items-center justify-center h-full"
+                    className="text-[9px] bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded font-bold uppercase tracking-wider transition-all cursor-pointer border border-zinc-800"
                     title="Copy Webhook URL"
                   >
-                    {copied ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
+                    POST Endpoint
                   </button>
                 </div>
-                <button 
-                  onClick={handleCopyWebhook}
-                  className="text-[9px] bg-zinc-900 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded font-bold uppercase tracking-wider transition-all cursor-pointer border border-zinc-800"
-                  title="Copy Webhook URL"
-                >
-                  POST Endpoint
-                </button>
-              </div>
             </div>
           </div>
         </div>
