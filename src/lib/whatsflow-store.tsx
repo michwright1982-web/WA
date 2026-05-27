@@ -763,7 +763,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addTemplate = (tmpl: Omit<Template, 'id' | 'createdAt'>) => {
-    setTemplates(prev => [...prev, { ...tmpl, id: `t-${Date.now()}`, createdAt: new Date().toISOString() }]);
+    setTemplates(prev => [...prev, { ...tmpl, id: `t-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, createdAt: new Date().toISOString() }]);
   };
 
   const deleteTemplate = (id: string) => {
