@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
-// Reference the same serverless-safe global in-memory queue
-const globalForQueue = global as unknown as { webhookQueue: any[] };
-if (!globalForQueue.webhookQueue) {
-  globalForQueue.webhookQueue = [];
-}
+const queuePath = path.join(os.tmpdir(), 'whatsflow_webhook_queue.json');
 
 export async function GET() {
-  const queue = [...globalForQueue.webhookQueue];
-  return NextResponse.json({ queue }, { status: 200 });
+  try {
+    if (fs.existsSync(queuePath)) {
+      const data = fs.readFileSync(queuePath, 'utf8');
+      const queue = data ? JSON.parse(data) : [];
+      return NextResponse.json({ queue }, { status: 200 });
+    }
+  } catch (error) {
+    console.error('Error reading queue file:', error);
+  }
+  return NextResponse.json({ queue: [] }, { status: 200 });
 }
 
 export async function DELETE() {
-  globalForQueue.webhookQueue = [];
+  try {
+    if (fs.existsSync(queuePath)) {
+      fs.writeFileSync(queuePath, JSON.stringify([]));
+    }
+  } catch (error) {
+    console.error('Error clearing queue file:', error);
+  }
   return NextResponse.json({ success: true }, { status: 200 });
 }

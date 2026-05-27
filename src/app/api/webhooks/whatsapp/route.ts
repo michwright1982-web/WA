@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
-// Serverless-safe global in-memory queue to avoid "read-only file system (EROFS)" errors in live hosting (Vercel/Netlify)
-const globalForQueue = global as unknown as { webhookQueue: any[] };
-if (!globalForQueue.webhookQueue) {
-  globalForQueue.webhookQueue = [];
-}
+const queuePath = path.join(os.tmpdir(), 'whatsflow_webhook_queue.json');
 
 function addToQueue(message: any) {
   try {
-    globalForQueue.webhookQueue.push(message);
-    console.log('Successfully added message to global memory queue. Current size:', globalForQueue.webhookQueue.length);
+    let queue = [];
+    if (fs.existsSync(queuePath)) {
+      const data = fs.readFileSync(queuePath, 'utf8');
+      if (data) queue = JSON.parse(data);
+    }
+    queue.push(message);
+    fs.writeFileSync(queuePath, JSON.stringify(queue), 'utf8');
+    console.log('Successfully added message to local file queue. Current size:', queue.length);
   } catch (err) {
     console.error('Error writing to webhook queue:', err);
   }
