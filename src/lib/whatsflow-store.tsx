@@ -115,7 +115,7 @@ interface WhatsFlowContextType {
   addWorkflow: (workflow: Omit<Workflow, 'id' | 'createdAt'>) => Workflow;
   updateWorkflow: (id: string, nodes: FlowNode[], edges: FlowEdge[]) => void;
   toggleWorkflowStatus: (id: string) => void;
-  triggerMockIncoming: (contactId: string, body: string, isAlreadyInMessages?: boolean, type?: 'text' | 'button' | 'image' | 'document' | 'voice') => void;
+
   addInteraction: (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => void;
   clearChat: (contactId: string) => void;
 }
@@ -194,7 +194,7 @@ const SEED_WORKFLOWS: Workflow[] = [
 ];
 
 export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const triggerMockIncomingRef = useRef<any>(null);
+
 
   // Start with empty state — real data loads from localStorage (or seed fallback) in useEffect
   const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
@@ -451,244 +451,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => clearTimeout(handler);
   }, [hasLoaded, workflows, templates, accounts, contacts, activeAccountId]);
 
-  // Simulated & Live Auto-Reply Engine when outgoing or incoming changes
-  const triggerMockIncoming = (
-    cId: string, 
-    text: string, 
-    isAlreadyInMessages = false, 
-    type: 'text' | 'button' | 'image' | 'document' | 'voice' = 'text'
-  ) => {
-    // Read from refs to guarantee freshest state even if React hasn't finished rendering the newest contacts
-    const currentContacts = contactsRef.current;
-    const currentWorkflows = workflowsRef.current;
 
-    const contact = currentContacts.find(c => c.id === cId);
-    if (!contact) return;
-
-    if (!isAlreadyInMessages) {
-      const newMsg: Message = {
-        id: `m-mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        accountId: activeAccountId,
-        contactId: cId,
-        type: type,
-        body: text,
-        direction: 'INCOMING',
-        status: cId === activeContactId ? 'read' : 'delivered',
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, newMsg]);
-    }
-
-    // Bypasses flow builder automation if disabled for this individual customer chat
-    if (contact.automationEnabled === false) return;
-
-    // Find active workflow (running) or fall back to the first workflow
-    const activeWorkflow = currentWorkflows.find(w => w.status === 'ACTIVE') || currentWorkflows[0];
-    if (!activeWorkflow) return;
-
-    // Execute flow builder canvas nodes dynamically based on active connections
-    console.log('[DEBUG] triggerMockIncoming:', { activeWorkflowId: activeWorkflow?.id, activeWorkflowName: activeWorkflow?.name, text, type, cId });
-    // Find the trigger node that matches the incoming message type
-    const expectedSubType = type === 'button' ? 'incoming_button' 
-                          : type === 'image' || type === 'document' || type === 'voice' ? 'incoming_media' 
-                          : 'incoming_text';
-
-    const triggerNode = activeWorkflow.nodes.find(
-      n => n.type === 'triggerNode' && n.data.config?.subType === expectedSubType
-    ) || activeWorkflow.nodes.find(n => n.type === 'triggerNode') || activeWorkflow.nodes[0];
-    let targetActionNode = null;
-
-    if (triggerNode) {
-      // Get ALL outgoing edges from the trigger node (supports non-linear multiple outputs)
-      const outgoingEdges = activeWorkflow.edges.filter(e => e.source === triggerNode.id);
-      
-      // Look through all branches connected to the trigger
-      for (const edge of outgoingEdges) {
-        const nextNode = activeWorkflow.nodes.find(n => n.id === edge.target);
-        if (!nextNode) continue;
-
-        if (nextNode.type === 'conditionNode') {
-          const keyword = nextNode.data.config?.keyword;
-          const subType = nextNode.data.config?.subType || '';
-          
-          if (subType === 'if_else') {
-            const branches = nextNode.data.config?.branches || [
-              { id: 'yes', keyword: nextNode.data.config?.keyword || 'pricing', label: 'If Yes' }
-            ];
-            const actionEdges = activeWorkflow.edges.filter(e => e.source === nextNode.id);
-            let matchedBranchId = 'else';
-
-            for (const branch of branches) {
-              const kw = branch.keyword || '';
-              if (kw && (text || '').toLowerCase().includes(kw.toLowerCase())) {
-                matchedBranchId = branch.id;
-                break;
-              }
-            }
-
-            const matchingEdge = actionEdges.find((e: any) => e.port === matchedBranchId);
-            if (matchingEdge) {
-              const actNode = activeWorkflow.nodes.find(n => n.id === matchingEdge.target);
-              if (actNode) targetActionNode = actNode;
-            } else {
-              // Fallback to old 'no' or 'else'
-              const fallbackEdge = actionEdges.find((e: any) => e.port === 'else' || e.port === 'no' || !e.port);
-              if (fallbackEdge) {
-                const actNode = activeWorkflow.nodes.find(n => n.id === fallbackEdge.target);
-                if (actNode) targetActionNode = actNode;
-              }
-            }
-          } else if (subType === 'while_loop') {
-            // Simulate standard looping response execution
-            targetActionNode = {
-              id: 'm-while-loop',
-              type: 'actionNode',
-              position: { x: 0, y: 0 },
-              data: {
-                label: 'While Loop Control',
-                description: 'Loop iterations running',
-                config: {
-                  subType: 'send_text',
-                  messageText: `[While Loop]: Iterating connected action steps... [1] Sent. [2] Sent. Loop completed successfully.`
-                }
-              }
-            } as FlowNode;
-          } else {
-            // Standard keyword condition match
-            if (keyword && (text || '').toLowerCase().includes(keyword.toLowerCase())) {
-              const actionEdges = activeWorkflow.edges.filter(e => e.source === nextNode.id);
-              for (const actionEdge of actionEdges) {
-                const actNode = activeWorkflow.nodes.find(n => n.id === actionEdge.target && n.type === 'actionNode');
-                if (actNode) {
-                  targetActionNode = actNode;
-                  break;
-                }
-              }
-            }
-          }
-        } else if (nextNode.type === 'actionNode') {
-          // Direct fallback if trigger directly links to an action node without conditional switches
-          if (!targetActionNode) {
-            targetActionNode = nextNode;
-          }
-        }
-        
-        // Stop search if we've successfully matched and resolved a conditional branch
-        if (targetActionNode && nextNode.type === 'conditionNode') {
-          break;
-        }
-      }
-    }
-
-    // 3. Absolute fallback: execute the first action node in the workflow canvas if nothing matched
-    if (!targetActionNode) {
-      targetActionNode = activeWorkflow.nodes.find(n => n.type === 'actionNode');
-    }
-
-    console.log('[DEBUG] Resolved targetActionNode:', targetActionNode?.id, targetActionNode?.data?.config);
-
-    // Execute resolved action node configurations matching Meta API specs
-    if (targetActionNode) {
-      setTimeout(() => {
-        try {
-          const subType = targetActionNode.data.config?.subType || 'send_text';
-          let replyMsg: Omit<Message, 'id' | 'timestamp'> = {
-            accountId: activeAccountId,
-            contactId: cId,
-            type: 'text',
-            body: targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.',
-            direction: 'OUTGOING',
-            status: 'read'
-          };
-
-          if (subType === 'send_message') {
-            const sendOption = targetActionNode.data.config?.sendOption || 'message';
-            const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
-            
-            if (sendOption === 'template') {
-              replyMsg.type = 'template';
-              let bodyText = '';
-              let buttons = ['Get Started', 'Contact Sales'];
-              const templateParam = targetActionNode.data.config?.messageText || 'Customer';
-
-              if (targetActionNode.data.config?.templateId) {
-                 const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
-                 if (tmpl) {
-                     bodyText = tmpl.bodyText;
-                     if (tmpl.buttons && tmpl.buttons.length > 0) {
-                         buttons = tmpl.buttons;
-                     }
-                     bodyText = bodyText.replace('{{1}}', templateParam);
-                     bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
-                 } else {
-                     bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-                 }
-              } else {
-                 bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-              }
-
-              replyMsg.body = bodyText;
-              replyMsg.buttons = buttons;
-            } else {
-              if (msgFormat === 'document') {
-                replyMsg.type = 'image';
-                replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
-                replyMsg.body = targetActionNode.data.config?.messageText || 'Sending attached media document...';
-              } else {
-                replyMsg.type = 'text';
-                replyMsg.body = targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.';
-              }
-            }
-          } else if (subType === 'send_buttons') {
-            replyMsg.type = 'button';
-            replyMsg.buttons = targetActionNode.data.config?.buttonOptions ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim()) : ['Onboarding', 'Documentation'];
-            replyMsg.body = targetActionNode.data.config?.messageText || 'Please click one of the interactive options below:';
-          } else if (subType === 'ai_assistant') {
-            replyMsg.type = 'text';
-            replyMsg.body = `[AI Reply Matching Prompt]: "${targetActionNode.data.config?.prompt || 'Support Bot Instruction'}". E.g., Yes, I can help you with your query "${text}"!`;
-          } else if (subType === 'http_call') {
-            replyMsg.type = 'text';
-            replyMsg.body = `[API POST Callback Triggered]: Connected ${targetActionNode.data.config?.apiUrl || 'https://api.mybusiness.com/callback'} using ${targetActionNode.data.config?.httpMethod || 'POST'}. Status 200 OK.`;
-          } else if (subType === 'change_label') {
-            const newLabel = targetActionNode.data.config?.newLabel || 'new';
-            updateContact(cId, { label: newLabel });
-            replyMsg.type = 'text';
-            replyMsg.body = `[System]: Contact label automatically changed to "${newLabel}"`;
-          } else if (subType === 'mark_read') {
-            return;
-          }
-
-          const finalMsg = {
-            ...replyMsg,
-            id: `m-auto-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: new Date().toISOString()
-          } as Message;
-
-          setMessages(prev => [...prev, finalMsg]);
-          
-          // Don't send internal system messages to Meta API
-          if (subType !== 'change_label') {
-            let resolvedTemplateName = 'welcome_onboarding';
-            let resolvedTemplateLanguage = 'en_US';
-            let templateParams: string[] = [];
-
-            if (targetActionNode.data.config?.templateId) {
-              const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
-              if (tmpl) {
-                resolvedTemplateName = tmpl.name;
-                resolvedTemplateLanguage = tmpl.language;
-              }
-            }
-            
-            sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
-          }
-        } catch (err) {
-          console.error('[DEBUG] triggerMockIncoming execution error:', err);
-        }
-      }, 50);
-    }
-  };
-  triggerMockIncomingRef.current = triggerMockIncoming;
 
   const addAccount = (acc: Omit<WhatsAppAccount, 'id' | 'status' | 'createdAt'>) => {
     const newAcc: WhatsAppAccount = {
@@ -715,21 +478,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const acc = accounts.find(a => a.id === message.accountId);
     const targetContact = contacts.find(c => c.id === message.contactId);
 
-    const isMock = !acc || 
-      acc.accessToken === 'EAAGb...' || 
-      acc.accessToken.length < 20 ||
-      acc.appSecret === '••••••••••••••••' ||
-      !targetContact;
+    if (!acc || !targetContact) {
+      console.warn('Cannot send message: missing account credentials or target contact.');
+      return;
+    }
 
-    if (isMock) {
-      console.log('Using simulated offline sandbox mode for outgoing message.');
-      // Simulate delivery & read
-      setTimeout(() => {
-        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'delivered' } : m));
-      }, 800);
-      setTimeout(() => {
-        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'read' } : m));
-      }, 2000);
+    if (acc.accessToken === 'EAAGb...' || acc.accessToken.length < 20 || acc.appSecret === '••••••••••••••••') {
+      console.warn('Cannot send message: account has placeholder credentials. Please configure real API credentials in the Credentials page.');
       return;
     }
 
@@ -761,10 +516,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Mark as sent successfully
       setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'sent' } : m));
       
-      // Auto deliver mock trigger
-      setTimeout(() => {
-        setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'delivered' } : m));
-      }, 1000);
+
     } catch (err: any) {
       console.error('Meta Dispatch failed:', err);
       // Flag message as failed in the UI to notify the user
@@ -988,7 +740,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       addWorkflow,
       updateWorkflow,
       toggleWorkflowStatus,
-      triggerMockIncoming,
+
       addInteraction,
       clearChat
     }}>

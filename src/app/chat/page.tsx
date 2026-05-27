@@ -50,8 +50,7 @@ export default function ChatPage() {
     updateContact,
     deleteContact,
     addInteraction,
-    clearChat,
-    triggerMockIncoming
+    clearChat
   } = useWhatsFlow();
 
   const activeAccount = accounts.find(a => a.id === activeAccountId);
@@ -649,25 +648,11 @@ export default function ChatPage() {
                       {/* Interactive Buttons Preview */}
                       {msg.buttons && (
                         <div className="mt-3 flex flex-wrap gap-1.5 font-sans">
-                          {msg.buttons.map((b, bidx) => {
-                            if (isOutgoing) {
-                              return (
-                                <button
-                                  key={bidx}
-                                  onClick={() => triggerMockIncoming(activeContactId, b, false, 'button')}
-                                  className="text-[10px] font-bold px-2.5 py-1 rounded border bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-700 cursor-pointer transition-all active:scale-95 flex items-center gap-1 shadow-sm font-sans"
-                                  title={`Simulate customer clicking "${b}"`}
-                                >
-                                  🔘 {b}
-                                </button>
-                              );
-                            }
-                            return (
-                              <span key={bidx} className="text-[10px] font-bold px-2.5 py-1 rounded border bg-zinc-950 border-zinc-800 text-zinc-400 flex items-center gap-1 font-sans">
-                                🔘 {b}
-                              </span>
-                            );
-                          })}
+                          {msg.buttons.map((b, bidx) => (
+                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 font-sans ${isOutgoing ? 'bg-zinc-100 border-zinc-300 text-zinc-700' : 'bg-zinc-950 border-zinc-800 text-zinc-400'}`}>
+                              🔘 {b}
+                            </span>
+                          ))}
                         </div>
                       )}
 

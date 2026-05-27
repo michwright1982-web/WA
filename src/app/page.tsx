@@ -11,7 +11,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleMockLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setTimeout(() => {
@@ -106,7 +106,7 @@ export default function Home() {
               <p className="text-zinc-500 text-xs">Enter your details to access the SaaS admin control</p>
             </div>
 
-            <form onSubmit={handleMockLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-xs text-zinc-400 block mb-1.5 font-medium">Business Email</label>
                 <input 
@@ -144,7 +144,7 @@ export default function Home() {
                 disabled={isSubmitting}
                 className="w-full py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 mt-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               >
-                {isSubmitting ? 'Verifying Sandbox...' : 'Login with Enterprise ID'}
+                {isSubmitting ? 'Signing in...' : 'Login with Enterprise ID'}
               </button>
             </form>
 
@@ -152,14 +152,14 @@ export default function Home() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-zinc-800"></div>
               </div>
-              <span className="relative bg-zinc-900 px-3 text-[11px] text-zinc-500 font-bold uppercase">Or sandbox bypass</span>
+              <span className="relative bg-zinc-900 px-3 text-[11px] text-zinc-500 font-bold uppercase">Or quick access</span>
             </div>
 
             <button 
               onClick={() => router.push('/dashboard')}
               className="w-full py-2.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/50 text-xs font-semibold text-zinc-300 transition-all flex items-center justify-center gap-2"
             >
-              <Shield className="h-4 w-4 text-zinc-400" /> Bypass Authentication (Go Straight to App)
+              <Shield className="h-4 w-4 text-zinc-400" /> Skip to Dashboard
             </button>
           </div>
         </div>
