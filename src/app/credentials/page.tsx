@@ -31,6 +31,7 @@ export default function CredentialsPage() {
   const [verifyToken, setVerifyToken] = useState('');
 
   const domain = typeof window !== 'undefined' ? window.location.origin : '';
+  const [copied, setCopied] = useState(false);
 
 
   const handleCopyWebhook = () => {
