@@ -354,7 +354,7 @@ export default function ChatPage() {
                       });
                     }
                   }}
-                  className={`relative inline-flex h-4.5 w-8.5 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`relative inline-flex items-center h-4.5 w-8.5 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     activeContact?.automationEnabled !== false ? 'bg-emerald-500' : 'bg-zinc-800'
                   }`}
                   role="switch"
@@ -364,7 +364,7 @@ export default function ChatPage() {
                   <span
                     aria-hidden="true"
                     className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      activeContact?.automationEnabled !== false ? 'translate-x-3.5' : 'translate-x-0'
+                      activeContact?.automationEnabled !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
                     }`}
                   />
                 </button>
@@ -667,26 +667,7 @@ export default function ChatPage() {
             
             {/* Quick Attachment panel shortcuts */}
             <div className="flex gap-2">
-              <button 
-                onClick={() => {
-                  setShowTmplSelect(!showTmplSelect);
-                  setShowBtnModal(false);
-                  setShowDocModal(false);
-                }}
-                className="text-xs flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
-              >
-                <FileCode className="h-3.5 w-3.5" /> Send Template
-              </button>
-              <button 
-                onClick={() => {
-                  setShowBtnModal(!showBtnModal);
-                  setShowTmplSelect(false);
-                  setShowDocModal(false);
-                }}
-                className="text-xs flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
-              >
-                <Grid className="h-3.5 w-3.5" /> Send Quick Buttons
-              </button>
+
               <button 
                 onClick={() => {
                   setShowDocModal(!showDocModal);
