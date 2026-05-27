@@ -27,7 +27,9 @@ import {
   FileText,
   Tag,
   Check,
-  Search
+  Search,
+  Download,
+  Upload
 } from 'lucide-react';
 
 // WhatsApp Business API Actions Node Library Registry
@@ -48,9 +50,7 @@ const nodeLibrary = {
     { subType: 'switch_logic', label: '🎛️ Multi-Switch Router', desc: 'Matches values against multiple custom keyword outcomes.', defaultLabel: 'Switch Logic Case', defaultDesc: 'Route conversation by multiple cases' },
   ],
   actions: [
-    { subType: 'send_text', label: '🟢 Send Text Message', desc: 'Send a regular WhatsApp text to recipient.', defaultLabel: 'Send Text Message', defaultDesc: 'Meta WhatsApp Text API endpoint' },
-    { subType: 'send_template', label: '🟢 Send HSM Template', desc: 'Sends approved utility or marketing templates.', defaultLabel: 'Send HSM Template', defaultDesc: 'Meta WhatsApp Template API' },
-    { subType: 'send_media', label: '🟢 Send Media File', desc: 'Sends an image, video, or doc attachment URL.', defaultLabel: 'Send Media File', defaultDesc: 'Meta Media Endpoint upload/send' },
+    { subType: 'send_message', label: '🟢 Send Message', desc: 'Send a regular text, media, or HSM template to recipient.', defaultLabel: 'Send Message', defaultDesc: 'Meta WhatsApp Send API endpoint' },
     { subType: 'send_buttons', label: '🟢 Send Interactive Buttons', desc: 'Sends quick reply buttons (max 3 options).', defaultLabel: 'Send Reply Buttons', defaultDesc: 'Meta Interactive Buttons API' },
     { subType: 'send_list', label: '🟢 Send Interactive List', desc: 'Sends a single-select menu options list.', defaultLabel: 'Send List Menu', defaultDesc: 'Meta Interactive List API' },
     { subType: 'send_flow', label: '🟢 Send Interactive Flow', desc: 'Sends custom Meta WhatsApp Flow dynamic forms.', defaultLabel: 'Send WhatsApp Flow', defaultDesc: 'Meta Interactive Flow Message API' },
@@ -80,8 +80,9 @@ const getNodeIcon = (subType: string, type: string) => {
     case 'merge_paths': return <GitMerge {...props} className="text-sky-400" />;
     case 'switch_logic': return <Shuffle {...props} className="text-sky-400" />;
     // Actions
+    case 'send_message': return <MessageSquareCode {...props} className="text-emerald-400" />;
     case 'send_text': return <MessageSquareCode {...props} className="text-emerald-400" />;
-    case 'send_template': return <Zap {...props} className="text-emerald-400" />;
+    case 'send_template': return <MessageSquareCode {...props} className="text-emerald-400" />;
     case 'send_media': return <Database {...props} className="text-emerald-400" />;
     case 'send_buttons': return <Play {...props} className="text-emerald-400" />;
     case 'send_list': return <ArrowRight {...props} className="text-emerald-400" />;
@@ -99,7 +100,7 @@ const getNodeIcon = (subType: string, type: string) => {
 };
 
 export default function WorkflowsPage() {
-  const { workflows, updateWorkflow, toggleWorkflowStatus, templates } = useWhatsFlow();
+  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, addWorkflow } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState(workflows[0]?.id || '');
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   
@@ -183,6 +184,61 @@ export default function WorkflowsPage() {
   };
 
   const activeWorkflow = workflows.find(w => w.id === selectedFlowId) || workflows[0];
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportWorkflow = () => {
+    if (!activeWorkflow) return;
+    const exportData = {
+      version: 'whatsflow-v1',
+      name: activeWorkflow.name,
+      nodes: activeWorkflow.nodes,
+      edges: activeWorkflow.edges
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    const fileName = `${activeWorkflow.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-export.json`;
+    downloadAnchor.setAttribute("download", fileName);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (!json.nodes || !Array.isArray(json.nodes)) {
+          alert('Invalid workflow file: missing nodes array.');
+          return;
+        }
+        
+        const newFlow = addWorkflow({
+          name: json.name ? `${json.name} (Imported)` : 'Imported Workflow',
+          status: 'INACTIVE',
+          nodes: json.nodes,
+          edges: json.edges || []
+        });
+
+        if (newFlow && newFlow.id) {
+          setSelectedFlowId(newFlow.id);
+        }
+      } catch (err) {
+        alert('Failed to parse workflow file: invalid JSON format.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Drag and drop states
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -401,6 +457,10 @@ export default function WorkflowsPage() {
   const [configFlowPayload, setConfigFlowPayload] = useState('');
   const [configNewLabel, setConfigNewLabel] = useState('');
   const [searchNodeLibraryQuery, setSearchNodeLibraryQuery] = useState('');
+  
+  // Unified send message config state
+  const [configSendOption, setConfigSendOption] = useState<'message' | 'template'>('message');
+  const [configMessageFormat, setConfigMessageFormat] = useState<'text' | 'document'>('text');
 
   const handleSelectNode = (node: FlowNode) => {
     setActiveNodeId(node.id);
@@ -430,6 +490,8 @@ export default function WorkflowsPage() {
     setConfigFlowToken(c.flowToken || 'AQAAAAACS5FpgQ_cAAAAAD0QI3s.');
     setConfigFlowPayload(c.flowPayload || '{\n  "product_name": "name",\n  "product_description": "description",\n  "product_price": 100\n}');
     setConfigNewLabel(c.newLabel || 'new');
+    setConfigSendOption(c.sendOption || 'message');
+    setConfigMessageFormat(c.messageFormat || 'text');
 
     // Bind dynamic branches for If-Else / Switch nodes
     if (c.subType === 'if_else') {
@@ -479,6 +541,8 @@ export default function WorkflowsPage() {
               flowToken: configFlowToken,
               flowPayload: configFlowPayload,
               newLabel: configNewLabel,
+              sendOption: configSendOption,
+              messageFormat: configMessageFormat,
               branches: isBranching ? configBranches : undefined
             }
           }
@@ -578,6 +642,13 @@ export default function WorkflowsPage() {
 
   return (
     <DashboardShell>
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".json"
+        onChange={handleFileImport}
+        className="hidden"
+      />
       <div className="space-y-4 w-full h-[calc(100vh-64px)] flex flex-col max-w-none -m-8 p-6 bg-zinc-950/20 relative overflow-hidden">
         
         {/* Top Control Bar */}
@@ -601,6 +672,22 @@ export default function WorkflowsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportWorkflow}
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-850 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white font-semibold transition-all cursor-pointer"
+              title="Download this workflow as a JSON file"
+            >
+              <Download className="h-3.5 w-3.5 text-indigo-400" /> Download
+            </button>
+
+            <button
+              onClick={handleImportClick}
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-850 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white font-semibold transition-all cursor-pointer"
+              title="Import a workflow JSON file"
+            >
+              <Upload className="h-3.5 w-3.5 text-emerald-450" /> Import
+            </button>
+
             <button
               onClick={() => toggleWorkflowStatus(activeWorkflow.id)}
               className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition-all ${
@@ -1358,139 +1445,142 @@ export default function WorkflowsPage() {
                             );
                           }
 
-                          if (subType === 'send_text') {
-                            return (
-                              <div>
-                                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Response Message Body</label>
-                                <textarea
-                                  rows={3}
-                                  value={configMessageText}
-                                  onChange={(e) => setConfigMessageText(e.target.value)}
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDragEnter={() => setDraggedOverField('messageText')}
-                                  onDragLeave={() => setDraggedOverField(null)}
-                                  onDrop={(e) => {
-                                    handleDrop(e, setConfigMessageText, configMessageText);
-                                    setDraggedOverField(null);
-                                  }}
-                                  placeholder="Type your WhatsApp message..."
-                                  className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
-                                    draggedOverField === 'messageText' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
-                                  }`}
-                                />
-                                <p className="text-[8px] text-zinc-500 mt-1">Supports standard text formatting like *bold* and _italics_.</p>
-                              </div>
-                            );
-                          }
-
-                          if (subType === 'send_template') {
+                          if (subType === 'send_message') {
                             const selectedTmpl = templates.find(t => t.id === configTemplateId);
                             return (
-                              <div className="space-y-3">
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select Meta HSM Template</label>
-                                  <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
-                                    {templates.length === 0 && (
-                                      <div className="text-[10px] text-zinc-500 italic p-3 bg-zinc-950/50 rounded-xl border border-zinc-850 text-center">
-                                        No templates found. Create templates in Meta Developer App first.
-                                      </div>
-                                    )}
-                                    {templates.map(tmpl => {
-                                      const isSelected = tmpl.id === configTemplateId;
-                                      const catColor = tmpl.category === 'MARKETING' ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
-                                        : tmpl.category === 'UTILITY' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-                                        : 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
-                                      return (
-                                        <button
-                                          key={tmpl.id}
-                                          type="button"
-                                          onClick={() => setConfigTemplateId(tmpl.id)}
-                                          className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                                            isSelected
-                                              ? 'bg-indigo-950/40 border-indigo-500/50 ring-1 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                                              : 'bg-zinc-950 border-zinc-850 hover:border-zinc-700 hover:bg-zinc-900/60'
-                                          }`}
-                                        >
-                                          <div className="flex items-center justify-between gap-2 mb-1">
-                                            <span className="text-[10px] font-bold text-zinc-200 font-mono truncate">{tmpl.name}</span>
-                                            <div className="flex items-center gap-1.5 shrink-0">
-                                              <span className={`text-[7px] font-bold uppercase px-1.5 py-0.5 rounded border ${catColor}`}>
-                                                {tmpl.category}
-                                              </span>
-                                              <span className={`text-[7px] font-bold uppercase px-1.5 py-0.5 rounded border ${
-                                                tmpl.status === 'APPROVED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                                              }`}>
-                                                {tmpl.status}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          <p className="text-[9px] text-zinc-500 line-clamp-2 leading-relaxed">{tmpl.bodyText}</p>
-                                          {tmpl.buttons && tmpl.buttons.length > 0 && (
-                                            <div className="flex gap-1 mt-1.5">
-                                              {tmpl.buttons.map((btn, i) => (
-                                                <span key={i} className="text-[7px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-semibold">
-                                                  🔘 {btn}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          )}
-                                          {isSelected && (
-                                            <div className="mt-1.5 text-[8px] text-indigo-400 font-bold flex items-center gap-1">
-                                              ✓ Selected
-                                            </div>
-                                          )}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfigSendOption('message')}
+                                    className={`py-2 px-3 rounded-lg text-[10px] font-bold transition-all ${configSendOption === 'message' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                  >
+                                    Send Message
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfigSendOption('template')}
+                                    className={`py-2 px-3 rounded-lg text-[10px] font-bold transition-all ${configSendOption === 'template' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                  >
+                                    Send Template
+                                  </button>
                                 </div>
 
-                                {selectedTmpl && (
-                                  <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-3 space-y-2">
-                                    <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Template Preview</div>
-                                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-                                      <p className="text-[10px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{selectedTmpl.bodyText}</p>
-                                      {selectedTmpl.buttons && selectedTmpl.buttons.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-zinc-800">
-                                          {selectedTmpl.buttons.map((btn, i) => (
-                                            <span key={i} className="text-[9px] px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold">
-                                              {btn}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
+                                {configSendOption === 'message' ? (
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                      <label className="flex items-center gap-2 cursor-pointer group">
+                                        <input
+                                          type="radio"
+                                          checked={configMessageFormat === 'text'}
+                                          onChange={() => setConfigMessageFormat('text')}
+                                          className="text-indigo-500 bg-zinc-950 border-zinc-800 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white transition-colors">Text</span>
+                                      </label>
+                                      <label className="flex items-center gap-2 cursor-pointer group">
+                                        <input
+                                          type="radio"
+                                          checked={configMessageFormat === 'document'}
+                                          onChange={() => setConfigMessageFormat('document')}
+                                          className="text-indigo-500 bg-zinc-950 border-zinc-800 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white transition-colors">Document / Media</span>
+                                      </label>
                                     </div>
-                                    <div className="flex items-center justify-between text-[8px] text-zinc-500">
-                                      <span>Language: {selectedTmpl.language}</span>
-                                      <span>ID: {selectedTmpl.id}</span>
+
+                                    {configMessageFormat === 'document' && (
+                                      <div>
+                                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Media URL (HTTPS)</label>
+                                        <input
+                                          type="text"
+                                          value={configMediaUrl}
+                                          onChange={(e) => setConfigMediaUrl(e.target.value)}
+                                          onDragOver={(e) => e.preventDefault()}
+                                          onDragEnter={() => setDraggedOverField('mediaUrl')}
+                                          onDragLeave={() => setDraggedOverField(null)}
+                                          onDrop={(e) => {
+                                            handleDrop(e, setConfigMediaUrl, configMediaUrl);
+                                            setDraggedOverField(null);
+                                          }}
+                                          placeholder="e.g. https://domain.com/file.pdf"
+                                          className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white font-mono focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
+                                            draggedOverField === 'mediaUrl' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
+                                          }`}
+                                        />
+                                      </div>
+                                    )}
+
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Message Text {configMessageFormat === 'document' ? '(Caption)' : ''}</label>
+                                      <textarea
+                                        rows={3}
+                                        value={configMessageText}
+                                        onChange={(e) => setConfigMessageText(e.target.value)}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDragEnter={() => setDraggedOverField('messageText')}
+                                        onDragLeave={() => setDraggedOverField(null)}
+                                        onDrop={(e) => {
+                                          handleDrop(e, setConfigMessageText, configMessageText);
+                                          setDraggedOverField(null);
+                                        }}
+                                        placeholder="Type your WhatsApp message..."
+                                        className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
+                                          draggedOverField === 'messageText' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
+                                        }`}
+                                      />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select Meta HSM Template</label>
+                                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                                        {templates.length === 0 && (
+                                          <div className="text-[10px] text-zinc-500 italic p-3 bg-zinc-950/50 rounded-xl border border-zinc-850 text-center">
+                                            No templates found.
+                                          </div>
+                                        )}
+                                        {templates.map(tmpl => {
+                                          const isSelected = tmpl.id === configTemplateId;
+                                          return (
+                                            <button
+                                              key={tmpl.id}
+                                              type="button"
+                                              onClick={() => setConfigTemplateId(tmpl.id)}
+                                              className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                                isSelected
+                                                  ? 'bg-indigo-950/40 border-indigo-500/50 ring-1 ring-indigo-500/30'
+                                                  : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'
+                                              }`}
+                                            >
+                                              <div className="text-[10px] font-bold text-zinc-200 truncate mb-1">{tmpl.name}</div>
+                                              <p className="text-[9px] text-zinc-500 line-clamp-1">{tmpl.bodyText}</p>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    {selectedTmpl && (
+                                      <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-3">
+                                        <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Preview</div>
+                                        <p className="text-[10px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{selectedTmpl.bodyText}</p>
+                                      </div>
+                                    )}
+
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Value ({"{{1}}"})</label>
+                                      <input
+                                        type="text"
+                                        value={configMessageText}
+                                        onChange={(e) => setConfigMessageText(e.target.value)}
+                                        placeholder="e.g. Client Name"
+                                        className="w-full bg-zinc-950 border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none border"
+                                      />
                                     </div>
                                   </div>
                                 )}
-
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Value ({"{{1}}"})</label>
-                                  <input
-                                    type="text"
-                                    value={configMessageText}
-                                    onChange={(e) => setConfigMessageText(e.target.value)}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDragEnter={() => setDraggedOverField('templateParam')}
-                                    onDragLeave={() => setDraggedOverField(null)}
-                                    onDrop={(e) => {
-                                      handleDrop(e, setConfigMessageText, configMessageText);
-                                      setDraggedOverField(null);
-                                    }}
-                                    placeholder="e.g. Client Name or drag upstream data pill"
-                                    className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
-                                      draggedOverField === 'templateParam' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
-                                    }`}
-                                  />
-                                  <p className="text-[8px] text-zinc-500 mt-1">Replace template placeholders like {"{{1}}"}, {"{{2}}"} with dynamic or static values.</p>
-                                </div>
-
-                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
-                                  💡 Templates must be <strong className="text-zinc-300">approved</strong> in your Meta Developer App before they can be sent. Only APPROVED templates will be delivered.
-                                </div>
                               </div>
                             );
                           }
@@ -1593,30 +1683,7 @@ export default function WorkflowsPage() {
                             );
                           }
 
-                          if (subType === 'send_media') {
-                            return (
-                              <div>
-                                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">WhatsApp Media Link (HTTPS URL)</label>
-                                <input
-                                  type="text"
-                                  value={configMediaUrl}
-                                  onChange={(e) => setConfigMediaUrl(e.target.value)}
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDragEnter={() => setDraggedOverField('mediaUrl')}
-                                  onDragLeave={() => setDraggedOverField(null)}
-                                  onDrop={(e) => {
-                                    handleDrop(e, setConfigMediaUrl, configMediaUrl);
-                                    setDraggedOverField(null);
-                                  }}
-                                  placeholder="e.g. https://images.unsplash.com/photo-..."
-                                  className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white font-mono focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
-                                    draggedOverField === 'mediaUrl' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
-                                  }`}
-                                />
-                                <p className="text-[8px] text-zinc-500 mt-1">Publicly hosted image, PDF document, or video link.</p>
-                              </div>
-                            );
-                          }
+
 
                           if (subType === 'send_buttons') {
                             return (

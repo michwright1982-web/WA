@@ -50,7 +50,8 @@ export default function ChatPage() {
     updateContact,
     deleteContact,
     addInteraction,
-    clearChat
+    clearChat,
+    triggerMockIncoming
   } = useWhatsFlow();
 
   const activeAccount = accounts.find(a => a.id === activeAccountId);
@@ -627,21 +628,40 @@ export default function ChatPage() {
                       )}
 
                       {msg.type !== 'document' && msg.type !== 'voice' && (
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap font-medium">{msg.body}</p>
+                        <p className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
+                          {msg.type === 'button' && !isOutgoing ? (
+                            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+                              <span>🔘 Interactive Click:</span>
+                              <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{msg.body}</span>
+                            </span>
+                          ) : (
+                            msg.body
+                          )}
+                        </p>
                       )}
 
                       {/* Interactive Buttons Preview */}
                       {msg.buttons && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {msg.buttons.map((b, bidx) => (
-                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border ${
-                              isOutgoing 
-                                ? 'bg-zinc-100 border-zinc-300 text-zinc-700' 
-                                : 'bg-zinc-950 border-zinc-800 text-zinc-400'
-                            }`}>
-                              🔘 {b}
-                            </span>
-                          ))}
+                        <div className="mt-3 flex flex-wrap gap-1.5 font-sans">
+                          {msg.buttons.map((b, bidx) => {
+                            if (isOutgoing) {
+                              return (
+                                <button
+                                  key={bidx}
+                                  onClick={() => triggerMockIncoming(activeContactId, b, false, 'button')}
+                                  className="text-[10px] font-bold px-2.5 py-1 rounded border bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-700 cursor-pointer transition-all active:scale-95 flex items-center gap-1 shadow-sm font-sans"
+                                  title={`Simulate customer clicking "${b}"`}
+                                >
+                                  🔘 {b}
+                                </button>
+                              );
+                            }
+                            return (
+                              <span key={bidx} className="text-[10px] font-bold px-2.5 py-1 rounded border bg-zinc-950 border-zinc-800 text-zinc-400 flex items-center gap-1 font-sans">
+                                🔘 {b}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
 

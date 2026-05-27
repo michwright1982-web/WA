@@ -112,10 +112,10 @@ interface WhatsFlowContextType {
   deleteContact: (id: string) => void;
   addTemplate: (template: Omit<Template, 'id' | 'createdAt'>) => void;
   deleteTemplate: (id: string) => void;
-  addWorkflow: (workflow: Omit<Workflow, 'id' | 'createdAt'>) => void;
+  addWorkflow: (workflow: Omit<Workflow, 'id' | 'createdAt'>) => Workflow;
   updateWorkflow: (id: string, nodes: FlowNode[], edges: FlowEdge[]) => void;
   toggleWorkflowStatus: (id: string) => void;
-  triggerMockIncoming: (contactId: string, body: string) => void;
+  triggerMockIncoming: (contactId: string, body: string, isAlreadyInMessages?: boolean, type?: 'text' | 'button' | 'image' | 'document' | 'voice') => void;
   addInteraction: (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => void;
   clearChat: (contactId: string) => void;
 }
@@ -396,16 +396,21 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [hasLoaded, activeAccountId, activeContactId]);
 
   // Simulated & Live Auto-Reply Engine when outgoing or incoming changes
-  const triggerMockIncoming = (cId: string, text: string, isAlreadyInMessages = false) => {
+  const triggerMockIncoming = (
+    cId: string, 
+    text: string, 
+    isAlreadyInMessages = false, 
+    type: 'text' | 'button' | 'image' | 'document' | 'voice' = 'text'
+  ) => {
     const contact = contacts.find(c => c.id === cId);
     if (!contact) return;
 
     if (!isAlreadyInMessages) {
       const newMsg: Message = {
-        id: `m-mock-${Date.now()}`,
+        id: `m-mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         accountId: activeAccountId,
         contactId: cId,
-        type: 'text',
+        type: type,
         body: text,
         direction: 'INCOMING',
         status: cId === activeContactId ? 'read' : 'delivered',
@@ -422,8 +427,14 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!activeWorkflow) return;
 
     // Execute flow builder canvas nodes dynamically based on active connections
-    // Find the primary trigger node (or standard trigger node)
-    const triggerNode = activeWorkflow.nodes.find(n => n.type === 'triggerNode') || activeWorkflow.nodes[0];
+    // Find the trigger node that matches the incoming message type
+    const expectedSubType = type === 'button' ? 'incoming_button' 
+                          : type === 'image' || type === 'document' || type === 'voice' ? 'incoming_media' 
+                          : 'incoming_text';
+
+    const triggerNode = activeWorkflow.nodes.find(
+      n => n.type === 'triggerNode' && n.data.config?.subType === expectedSubType
+    ) || activeWorkflow.nodes.find(n => n.type === 'triggerNode') || activeWorkflow.nodes[0];
     let targetActionNode = null;
 
     if (triggerNode) {
@@ -526,34 +537,44 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           status: 'read'
         };
 
-        if (subType === 'send_template') {
-          replyMsg.type = 'template';
-          let bodyText = '';
-          let buttons = ['Get Started', 'Contact Sales'];
-          const templateParam = targetActionNode.data.config?.messageText || 'Customer';
+        if (subType === 'send_message') {
+          const sendOption = targetActionNode.data.config?.sendOption || 'message';
+          const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
+          
+          if (sendOption === 'template') {
+            replyMsg.type = 'template';
+            let bodyText = '';
+            let buttons = ['Get Started', 'Contact Sales'];
+            const templateParam = targetActionNode.data.config?.messageText || 'Customer';
 
-          if (targetActionNode.data.config?.templateId) {
-             const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
-             if (tmpl) {
-                 bodyText = tmpl.bodyText;
-                 if (tmpl.buttons && tmpl.buttons.length > 0) {
-                     buttons = tmpl.buttons;
-                 }
-                 bodyText = bodyText.replace('{{1}}', templateParam);
-                 bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
-             } else {
-                 bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-             }
+            if (targetActionNode.data.config?.templateId) {
+               const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
+               if (tmpl) {
+                   bodyText = tmpl.bodyText;
+                   if (tmpl.buttons && tmpl.buttons.length > 0) {
+                       buttons = tmpl.buttons;
+                   }
+                   bodyText = bodyText.replace('{{1}}', templateParam);
+                   bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
+               } else {
+                   bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+               }
+            } else {
+               bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+            }
+
+            replyMsg.body = bodyText;
+            replyMsg.buttons = buttons;
           } else {
-             bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+            if (msgFormat === 'document') {
+              replyMsg.type = 'image';
+              replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
+              replyMsg.body = targetActionNode.data.config?.messageText || 'Sending attached media document...';
+            } else {
+              replyMsg.type = 'text';
+              replyMsg.body = targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.';
+            }
           }
-
-          replyMsg.body = bodyText;
-          replyMsg.buttons = buttons;
-        } else if (subType === 'send_media') {
-          replyMsg.type = 'image';
-          replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
-          replyMsg.body = targetActionNode.data.config?.messageText || 'Sending attached media document...';
         } else if (subType === 'send_buttons') {
           replyMsg.type = 'button';
           replyMsg.buttons = targetActionNode.data.config?.buttonOptions ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim()) : ['Onboarding', 'Documentation'];
@@ -830,7 +851,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addWorkflow = (flow: Omit<Workflow, 'id' | 'createdAt'>) => {
-    setWorkflows(prev => [...prev, { ...flow, id: `w-${Date.now()}`, createdAt: new Date().toISOString() }]);
+    const newWorkflow: Workflow = {
+      ...flow,
+      id: `w-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setWorkflows(prev => [...prev, newWorkflow]);
+    return newWorkflow;
   };
 
   const updateWorkflow = (id: string, nodes: FlowNode[], edges: FlowEdge[]) => {
