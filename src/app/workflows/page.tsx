@@ -1583,22 +1583,25 @@ export default function WorkflowsPage() {
                                     </div>
 
                                     {selectedTmpl && (
-                                      <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-3">
-                                        <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Preview</div>
-                                        <p className="text-[10px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{selectedTmpl.bodyText}</p>
-                                      </div>
+                                      <>
+                                        <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-3">
+                                          <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Preview</div>
+                                          <p className="text-[10px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{selectedTmpl.bodyText}</p>
+                                        </div>
+                                        {selectedTmpl.bodyText.includes('{{') && (
+                                          <div>
+                                            <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Values (Comma-separated)</label>
+                                            <input
+                                              type="text"
+                                              value={configMessageText}
+                                              onChange={(e) => setConfigMessageText(e.target.value)}
+                                              placeholder="e.g. John, VIP, 2026-10-10"
+                                              className="w-full bg-zinc-950 border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none border"
+                                            />
+                                          </div>
+                                        )}
+                                      </>
                                     )}
-
-                                    <div>
-                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Values (Comma-separated)</label>
-                                      <input
-                                        type="text"
-                                        value={configMessageText}
-                                        onChange={(e) => setConfigMessageText(e.target.value)}
-                                        placeholder="e.g. John, VIP, 2026-10-10"
-                                        className="w-full bg-zinc-950 border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none border"
-                                      />
-                                    </div>
                                   </div>
                                 )}
                               </div>
