@@ -877,10 +877,10 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const isBecomingActive = targetWorkflow?.status !== 'ACTIVE';
       const next = prev.map(w => {
         if (w.id === id) {
-          return { ...w, status: isBecomingActive ? 'ACTIVE' : 'INACTIVE' };
+          return { ...w, status: (isBecomingActive ? 'ACTIVE' : 'INACTIVE') as 'ACTIVE' | 'INACTIVE' };
         }
         if (isBecomingActive && w.status === 'ACTIVE') {
-          return { ...w, status: 'INACTIVE' };
+          return { ...w, status: 'INACTIVE' as 'ACTIVE' | 'INACTIVE' };
         }
         return w;
       });
