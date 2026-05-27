@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 
 const queuePath = path.join(os.tmpdir(), 'whatsflow_webhook_queue.json');
+export const dynamic = 'force-dynamic';
 
 function addToQueue(message: any) {
   try {
