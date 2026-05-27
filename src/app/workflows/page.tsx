@@ -24,7 +24,10 @@ import {
   GitMerge,
   Hourglass,
   Shuffle,
-  FileText
+  FileText,
+  Tag,
+  Check,
+  Search
 } from 'lucide-react';
 
 // WhatsApp Business API Actions Node Library Registry
@@ -54,6 +57,7 @@ const nodeLibrary = {
     { subType: 'mark_read', label: '🟢 Mark Inbound as Read', desc: 'Marks current customer message thread as read.', defaultLabel: 'Mark Message Read', defaultDesc: 'Meta Message Status PUT endpoint' },
     { subType: 'ai_assistant', label: '🟢 OpenAI Auto-Reply', desc: 'Generates smart answers using OpenAI GPT-4.', defaultLabel: 'AI Auto-Response', defaultDesc: 'OpenAI GPT-4 Completion Integrator' },
     { subType: 'http_call', label: '🟢 External API Hook', desc: 'Makes custom HTTP POST/GET request to endpoints.', defaultLabel: 'HTTP Webhook Call', defaultDesc: 'Trigger third-party integration webhook' },
+    { subType: 'change_label', label: '🟢 Change Contact Label', desc: 'Updates the CRM label for the contact.', defaultLabel: 'Change Contact Label', defaultDesc: 'Modify contact label status' },
     { subType: 'wait_time', label: '⏳ Wait / Delay Timer', desc: 'Pauses step execution for a custom time duration.', defaultLabel: 'Wait / Delay Timer', defaultDesc: 'Pause execution before next step' },
   ]
 };
@@ -82,10 +86,11 @@ const getNodeIcon = (subType: string, type: string) => {
     case 'send_buttons': return <Play {...props} className="text-emerald-400" />;
     case 'send_list': return <ArrowRight {...props} className="text-emerald-400" />;
     case 'send_flow': return <FileText {...props} className="text-emerald-400" />;
-    case 'mark_read': return <Zap {...props} className="text-emerald-400" />;
-    case 'ai_assistant': return <Bot {...props} className="text-emerald-400" />;
-    case 'http_call': return <GitFork {...props} className="text-emerald-400" />;
-    case 'wait_time': return <Hourglass {...props} className="text-emerald-400" />;
+    case 'mark_read': return <Check className={props.className} />;
+    case 'ai_assistant': return <Bot className={props.className} />;
+    case 'http_call': return <Zap className={props.className} />;
+    case 'change_label': return <Tag className={props.className} />;
+    case 'wait_time': return <Clock className={props.className} />;
     default:
       if (type === 'triggerNode') return <Zap {...props} className="text-yellow-500" />;
       if (type === 'conditionNode') return <HelpCircle {...props} className="text-sky-400" />;
@@ -394,6 +399,8 @@ export default function WorkflowsPage() {
   const [configFlowScreen, setConfigFlowScreen] = useState('');
   const [configFlowToken, setConfigFlowToken] = useState('');
   const [configFlowPayload, setConfigFlowPayload] = useState('');
+  const [configNewLabel, setConfigNewLabel] = useState('');
+  const [searchNodeLibraryQuery, setSearchNodeLibraryQuery] = useState('');
 
   const handleSelectNode = (node: FlowNode) => {
     setActiveNodeId(node.id);
@@ -422,6 +429,7 @@ export default function WorkflowsPage() {
     setConfigFlowScreen(c.flowScreen || 'QUESTION_ONE');
     setConfigFlowToken(c.flowToken || 'AQAAAAACS5FpgQ_cAAAAAD0QI3s.');
     setConfigFlowPayload(c.flowPayload || '{\n  "product_name": "name",\n  "product_description": "description",\n  "product_price": 100\n}');
+    setConfigNewLabel(c.newLabel || 'new');
 
     // Bind dynamic branches for If-Else / Switch nodes
     if (c.subType === 'if_else') {
@@ -470,6 +478,7 @@ export default function WorkflowsPage() {
               flowScreen: configFlowScreen,
               flowToken: configFlowToken,
               flowPayload: configFlowPayload,
+              newLabel: configNewLabel,
               branches: isBranching ? configBranches : undefined
             }
           }
@@ -486,10 +495,21 @@ export default function WorkflowsPage() {
     if (!activeWorkflow) return;
 
     const count = activeWorkflow.nodes.length + 1;
+    let newX = 100;
+    let newY = 150;
+
+    if (activeWorkflow.nodes.length > 0) {
+      const lastNode = activeWorkflow.nodes[activeWorkflow.nodes.length - 1];
+      const nodeWidth = 280; // Standard node width
+      
+      newX = lastNode.position.x + nodeWidth + 20;
+      newY = lastNode.position.y;
+    }
+
     const newNode: FlowNode = {
       id: `node-${count}`,
       type: type === 'trigger' ? 'triggerNode' : type === 'condition' ? 'conditionNode' : 'actionNode',
-      position: { x: 100 + (count * 40) % 250, y: 150 + (count * 50) % 200 },
+      position: { x: newX, y: newY },
       data: {
         label: label,
         description: desc,
@@ -1023,77 +1043,127 @@ export default function WorkflowsPage() {
               </button>
 
               {isApiActionsExpanded ? (
-                <div className="flex-1 flex flex-col justify-between p-5 overflow-y-auto space-y-4 min-h-0">
+                <div className="flex-1 flex flex-col p-5 overflow-y-auto space-y-5 min-h-0">
+                  {/* Search Bar */}
+                  <div className="relative shrink-0">
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
+                    <input
+                      type="text"
+                      placeholder="Search actions..."
+                      value={searchNodeLibraryQuery}
+                      onChange={(e) => setSearchNodeLibraryQuery(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                    />
+                  </div>
+
                   {/* Node Templates List - Categorized by type */}
-                  <div className="space-y-4">
-                    {/* Triggers Category */}
-                    <div>
-                      <span className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest block mb-2">⚡ Trigger Events (Inbound)</span>
-                      <div className="space-y-1.5">
-                        {nodeLibrary.triggers.map(t => (
-                          <button
-                            key={t.subType}
-                            onClick={() => {
-                              handleAddNode('trigger', t.subType, t.defaultLabel, t.defaultDesc);
-                              setIsApiActionsExpanded(false); // Smoothly slide close after selection!
-                            }}
-                            className="w-full text-left bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 hover:border-zinc-700 p-2 rounded-lg transition-all cursor-pointer"
-                          >
-                            <div className="text-[10px] font-bold text-zinc-200 flex items-center gap-1.5">
-                              {getNodeIcon(t.subType, 'triggerNode')}
-                              <span>{t.label}</span>
-                            </div>
-                            <div className="text-[8px] text-zinc-500 mt-0.5 line-clamp-1">{t.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="space-y-6 flex-1">
+                    {(() => {
+                      const q = searchNodeLibraryQuery.toLowerCase();
+                      const triggers = nodeLibrary.triggers.filter(t => t.label.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q));
+                      const conditions = nodeLibrary.conditions.filter(c => c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q));
+                      const actions = nodeLibrary.actions.filter(a => a.label.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q));
 
-                    {/* Conditions Category */}
-                    <div>
-                      <span className="text-[9px] font-bold text-sky-400 uppercase tracking-widest block mb-2">🔍 Logical Conditions</span>
-                      <div className="space-y-1.5">
-                        {nodeLibrary.conditions.map(c => (
-                          <button
-                            key={c.subType}
-                            onClick={() => {
-                              handleAddNode('condition', c.subType, c.defaultLabel, c.defaultDesc);
-                              setIsApiActionsExpanded(false); // Smoothly slide close after selection!
-                            }}
-                            className="w-full text-left bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 hover:border-zinc-700 p-2 rounded-lg transition-all cursor-pointer"
-                          >
-                            <div className="text-[10px] font-bold text-zinc-200 flex items-center gap-1.5">
-                              {getNodeIcon(c.subType, 'conditionNode')}
-                              <span>{c.label}</span>
+                      return (
+                        <>
+                          {/* Triggers Category */}
+                          {triggers.length > 0 && (
+                            <div>
+                              <span className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest block mb-3">⚡ Trigger Events</span>
+                              <div className="space-y-2">
+                                {triggers.map(t => (
+                                  <button
+                                    key={t.subType}
+                                    onClick={() => {
+                                      handleAddNode('trigger', t.subType, t.defaultLabel, t.defaultDesc);
+                                      setIsApiActionsExpanded(false);
+                                      setSearchNodeLibraryQuery('');
+                                    }}
+                                    className="w-full text-left bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-yellow-500/40 p-3 rounded-xl transition-all duration-200 cursor-pointer group hover:shadow-[0_4px_20px_rgba(234,179,8,0.1)] flex items-start gap-3"
+                                  >
+                                    <div className="h-8 w-8 rounded-lg bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-800 transition-transform duration-300">
+                                      {getNodeIcon(t.subType, 'triggerNode')}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[11px] font-bold text-zinc-200 group-hover:text-yellow-400 transition-colors">
+                                        {t.label.replace('⚡ ', '')}
+                                      </div>
+                                      <div className="text-[9px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">{t.desc}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div className="text-[8px] text-zinc-500 mt-0.5 line-clamp-1">{c.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                          )}
 
-                    {/* Actions Category */}
-                    <div>
-                      <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-2">🟢 Action Operations</span>
-                      <div className="space-y-1.5">
-                        {nodeLibrary.actions.map(a => (
-                          <button
-                            key={a.subType}
-                            onClick={() => {
-                              handleAddNode('action', a.subType, a.defaultLabel, a.defaultDesc);
-                              setIsApiActionsExpanded(false); // Smoothly slide close after selection!
-                            }}
-                            className="w-full text-left bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 hover:border-zinc-700 p-2 rounded-lg transition-all cursor-pointer"
-                          >
-                            <div className="text-[10px] font-bold text-zinc-200 flex items-center gap-1.5">
-                              {getNodeIcon(a.subType, 'actionNode')}
-                              <span>{a.label}</span>
+                          {/* Conditions Category */}
+                          {conditions.length > 0 && (
+                            <div>
+                              <span className="text-[9px] font-bold text-sky-400 uppercase tracking-widest block mb-3">🔍 Logical Conditions</span>
+                              <div className="space-y-2">
+                                {conditions.map(c => (
+                                  <button
+                                    key={c.subType}
+                                    onClick={() => {
+                                      handleAddNode('condition', c.subType, c.defaultLabel, c.defaultDesc);
+                                      setIsApiActionsExpanded(false);
+                                      setSearchNodeLibraryQuery('');
+                                    }}
+                                    className="w-full text-left bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-sky-500/40 p-3 rounded-xl transition-all duration-200 cursor-pointer group hover:shadow-[0_4px_20px_rgba(56,189,248,0.1)] flex items-start gap-3"
+                                  >
+                                    <div className="h-8 w-8 rounded-lg bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-800 transition-transform duration-300">
+                                      {getNodeIcon(c.subType, 'conditionNode')}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[11px] font-bold text-zinc-200 group-hover:text-sky-400 transition-colors">
+                                        {c.label.replace(/[^\w\s-]/g, '').trim()}
+                                      </div>
+                                      <div className="text-[9px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">{c.desc}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div className="text-[8px] text-zinc-500 mt-0.5 line-clamp-1">{a.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                          )}
+
+                          {/* Actions Category */}
+                          {actions.length > 0 && (
+                            <div>
+                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-3">🟢 Action Operations</span>
+                              <div className="space-y-2">
+                                {actions.map(a => (
+                                  <button
+                                    key={a.subType}
+                                    onClick={() => {
+                                      handleAddNode('action', a.subType, a.defaultLabel, a.defaultDesc);
+                                      setIsApiActionsExpanded(false);
+                                      setSearchNodeLibraryQuery('');
+                                    }}
+                                    className="w-full text-left bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-emerald-500/40 p-3 rounded-xl transition-all duration-200 cursor-pointer group hover:shadow-[0_4px_20px_rgba(52,211,153,0.1)] flex items-start gap-3"
+                                  >
+                                    <div className="h-8 w-8 rounded-lg bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-800 transition-transform duration-300">
+                                      {getNodeIcon(a.subType, 'actionNode')}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[11px] font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors">
+                                        {a.label.replace('🟢 ', '')}
+                                      </div>
+                                      <div className="text-[9px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">{a.desc}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {triggers.length === 0 && conditions.length === 0 && actions.length === 0 && (
+                            <div className="text-center py-10">
+                              <p className="text-[10px] text-zinc-500">No actions found matching "{searchNodeLibraryQuery}"</p>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="border-t border-zinc-800/80 pt-3 text-center">
@@ -1606,6 +1676,24 @@ export default function WorkflowsPage() {
                                     }`}
                                   />
                                 </div>
+                              </div>
+                            );
+                          }
+
+                          if (subType === 'change_label') {
+                            return (
+                              <div>
+                                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">New Assigned Label</label>
+                                <select
+                                  value={configNewLabel}
+                                  onChange={(e) => setConfigNewLabel(e.target.value)}
+                                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                >
+                                  <option value="new">new</option>
+                                  <option value="language selected">language selected</option>
+                                  <option value="flow filled">flow filled</option>
+                                </select>
+                                <p className="text-[8px] text-zinc-500 mt-1">Select the label to assign to the contact when this step executes.</p>
                               </div>
                             );
                           }

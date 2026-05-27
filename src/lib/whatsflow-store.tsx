@@ -29,7 +29,7 @@ export interface Contact {
   name: string;
   phoneNumber: string;
   email?: string;
-  tags: string[];
+  label?: 'new' | 'language selected' | 'flow filled';
   status: 'active' | 'inactive';
   automationEnabled?: boolean;
   leadStatus?: 'qualified' | 'not_qualified' | 'new';
@@ -151,13 +151,13 @@ const SEED_ACCOUNTS: WhatsAppAccount[] = [
 ];
 
 const SEED_CONTACTS: Contact[] = [
-  { id: 'c-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', email: 'alex@rivera.com', tags: ['VIP', 'Lead'], status: 'active', leadStatus: 'qualified', interactions: [
+  { id: 'c-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', email: 'alex@rivera.com', label: 'new', status: 'active', leadStatus: 'qualified', interactions: [
     { id: 'int-1', date: '2026-05-24', medium: 'whatsapp', notes: 'Discussed pricing tiers and enterprise plan.', createdAt: '2026-05-24T10:30:00Z' },
     { id: 'int-2', date: '2026-05-25', medium: 'phone', notes: 'Follow-up call: confirmed interest in premium tier.', createdAt: '2026-05-25T14:15:00Z' }
   ] },
-  { id: 'c-2', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', email: 'sam@chen.design', tags: ['Customer'], status: 'active', leadStatus: 'new', interactions: [] },
-  { id: 'c-3', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', email: 'marcus.j@enterprise.com', tags: ['Team Member'], status: 'active', leadStatus: 'qualified', interactions: [] },
-  { id: 'c-4', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', email: 'clara@tardis.io', tags: ['Lead'], status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
+  { id: 'c-2', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', email: 'sam@chen.design', label: 'language selected', status: 'active', leadStatus: 'new', interactions: [] },
+  { id: 'c-3', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', email: 'marcus.j@enterprise.com', label: 'flow filled', status: 'active', leadStatus: 'qualified', interactions: [] },
+  { id: 'c-4', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', email: 'clara@tardis.io', label: 'new', status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
 ];
 
 const SEED_MESSAGES: Message[] = [
@@ -334,7 +334,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     id: newContactId,
                     name: item.senderName || `WhatsApp User (+${item.phoneNumber})`,
                     phoneNumber: item.phoneNumber,
-                    tags: ['Incoming', 'Lead'],
+                    label: 'new',
                     status: 'active',
                     leadStatus: 'new',
                     automationEnabled: true,
@@ -564,19 +564,26 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } else if (subType === 'http_call') {
           replyMsg.type = 'text';
           replyMsg.body = `[API POST Callback Triggered]: Connected ${targetActionNode.data.config?.apiUrl || 'https://api.mybusiness.com/callback'} using ${targetActionNode.data.config?.httpMethod || 'POST'}. Status 200 OK.`;
+        } else if (subType === 'change_label') {
+          const newLabel = targetActionNode.data.config?.newLabel || 'new';
+          updateContact(cId, { label: newLabel });
+          replyMsg.type = 'text';
+          replyMsg.body = `[System]: Contact label automatically changed to "${newLabel}"`;
         } else if (subType === 'mark_read') {
           return;
         }
 
         const finalMsg = {
           ...replyMsg,
-          id: `m-auto-reply-${Date.now()}`,
+          id: `m-auto-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: new Date().toISOString()
         } as Message;
 
         setMessages(prev => [...prev, finalMsg]);
         
-        let resolvedTemplateName = 'welcome_onboarding';
+        // Don't send internal system messages to Meta API
+        if (subType !== 'change_label') {
+          let resolvedTemplateName = 'welcome_onboarding';
         let resolvedTemplateLanguage = 'en_US';
         let templateParams: string[] = [];
 
@@ -597,7 +604,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         }
         
-        sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
+          sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
+        }
       }, 1200);
     }
   };

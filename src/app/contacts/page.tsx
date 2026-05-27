@@ -25,13 +25,13 @@ export default function ContactsPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [tagInput, setTagInput] = useState('');
+  const [labelInput, setLabelInput] = useState<'new' | 'language selected' | 'flow filled' | ''>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
   const filtered = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.phoneNumber.includes(searchQuery) ||
-    c.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+    (c.label && c.label.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleOpenAdd = () => {
@@ -39,7 +39,7 @@ export default function ContactsPage() {
     setName('');
     setPhone('');
     setEmail('');
-    setTagInput('');
+    setLabelInput('');
     setStatus('active');
     setShowAddModal(true);
   };
@@ -49,7 +49,7 @@ export default function ContactsPage() {
     setName(ct.name);
     setPhone(ct.phoneNumber);
     setEmail(ct.email || '');
-    setTagInput(ct.tags.join(', '));
+    setLabelInput(ct.label || '');
     setStatus(ct.status);
     setShowAddModal(true);
   };
@@ -62,7 +62,7 @@ export default function ContactsPage() {
       name,
       phoneNumber: phone,
       email: email || undefined,
-      tags: tagInput ? tagInput.split(',').map(t => t.trim()).filter(Boolean) : [],
+      label: labelInput || undefined,
       status
     };
 
@@ -75,15 +75,15 @@ export default function ContactsPage() {
     setName('');
     setPhone('');
     setEmail('');
-    setTagInput('');
+    setLabelInput('');
     setStatus('active');
     setEditContactId(null);
     setShowAddModal(false);
   };
 
   const handleExportCSV = () => {
-    const headers = 'Name,Phone,Email,Tags,Status\n';
-    const rows = contacts.map(c => `"${c.name}","${c.phoneNumber}","${c.email || ''}","${c.tags.join(';')}","${c.status}"`).join('\n');
+    const headers = 'Name,Phone,Email,Label,Status\n';
+    const rows = contacts.map(c => `"${c.name}","${c.phoneNumber}","${c.email || ''}","${c.label || ''}","${c.status}"`).join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -103,8 +103,8 @@ export default function ContactsPage() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-zinc-200">CRM Contacts & Tags</h2>
-              <p className="text-[10px] text-zinc-500 mt-0.5">Organize customer details and custom tags for broadcasting</p>
+              <h2 className="text-sm font-semibold text-zinc-200">CRM Contacts & Labels</h2>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Organize customer details and custom labels for broadcasting</p>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export default function ContactsPage() {
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
               <input
                 type="text"
-                placeholder="Search CRM by name, tags..."
+                placeholder="Search CRM by name, label..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
@@ -149,7 +149,7 @@ export default function ContactsPage() {
                   <th className="p-4">Customer Name</th>
                   <th className="p-4">WhatsApp Phone</th>
                   <th className="p-4">Email</th>
-                  <th className="p-4">Assigned Tags</th>
+                  <th className="p-4">Assigned Label</th>
                   <th className="p-4">Qualified Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
@@ -162,11 +162,11 @@ export default function ContactsPage() {
                     <td className="p-4 text-zinc-400">{ct.email || '—'}</td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1">
-                        {ct.tags.map(t => (
-                          <span key={t} className="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                            {t}
+                        {ct.label && (
+                          <span className="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                            {ct.label}
                           </span>
-                        ))}
+                        )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -261,14 +261,17 @@ export default function ContactsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">Tags (Comma Separated)</label>
-                  <input
-                    type="text"
-                    placeholder="Lead, VIP, Promo"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
+                  <label className="text-xs text-zinc-400 block mb-1">Assigned Label</label>
+                  <select
+                    value={labelInput}
+                    onChange={(e) => setLabelInput(e.target.value as any)}
                     className="w-full bg-zinc-950 border border-zinc-850 rounded p-2 text-xs text-white focus:outline-none"
-                  />
+                  >
+                    <option value="">No Label</option>
+                    <option value="new">new</option>
+                    <option value="language selected">language selected</option>
+                    <option value="flow filled">flow filled</option>
+                  </select>
                 </div>
 
                 <div>
