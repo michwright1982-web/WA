@@ -79,11 +79,11 @@ export default function AnalyticsPage() {
             <span className="text-xs text-zinc-500 font-semibold block mb-4">Customer Sentiment (AI Node Logs)</span>
             <div className="relative h-32 flex items-center justify-center">
               <svg className="h-28 w-28 transform -rotate-90">
-                <circle cx="56" cy="56" r="44" strokeWidth="8" stroke="rgba(255,255,255,0.05)" fill="transparent" />
-                <circle cx="56" cy="56" r="44" strokeWidth="8" stroke="white" strokeDasharray="276" strokeDashoffset="50" fill="transparent" strokeLinecap="round" />
+                <circle cx="56" cy="56" r="44" strokeWidth="8" stroke="var(--chart-bg)" fill="transparent" />
+                <circle cx="56" cy="56" r="44" strokeWidth="8" stroke="var(--chart-fg)" strokeDasharray="276" strokeDashoffset="50" fill="transparent" strokeLinecap="round" />
               </svg>
               <div className="absolute flex flex-col items-center">
-                <span className="text-xl font-bold text-white">82%</span>
+                <span className="text-xl font-bold text-zinc-100">82%</span>
                 <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">POSITIVE</span>
               </div>
             </div>

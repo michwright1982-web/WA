@@ -143,11 +143,11 @@ export default function DashboardPage() {
                 <div className="relative h-32 w-32 flex items-center justify-center">
                   {/* Outer circle track */}
                   <svg className="absolute w-full h-full transform -rotate-90">
-                    <circle cx="64" cy="64" r="50" strokeWidth="8" stroke="rgba(255,255,255,0.05)" fill="transparent" />
-                    <circle cx="64" cy="64" r="50" strokeWidth="8" stroke="white" strokeDasharray="314" strokeDashoffset="45" fill="transparent" strokeLinecap="round" />
+                    <circle cx="64" cy="64" r="50" strokeWidth="8" stroke="var(--chart-bg)" fill="transparent" />
+                    <circle cx="64" cy="64" r="50" strokeWidth="8" stroke="var(--chart-fg)" strokeDasharray="314" strokeDashoffset="45" fill="transparent" strokeLinecap="round" />
                   </svg>
                   <div className="flex flex-col items-center">
-                    <span className="text-2xl font-bold text-white">45 ms</span>
+                    <span className="text-2xl font-bold text-zinc-100">45 ms</span>
                     <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">EXCELLENT</span>
                   </div>
                 </div>

@@ -118,6 +118,10 @@ interface WhatsFlowContextType {
 
   addInteraction: (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => void;
   clearChat: (contactId: string) => void;
+
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
 }
 
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
@@ -204,6 +208,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string>('');
   const [activeContactId, setActiveContactId] = useState<string>('');
+  const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -230,6 +235,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const storedActiveContactId = localStorage.getItem('whatsflow_active_contact_id');
       setActiveContactId(storedActiveContactId || 'c-1');
+
+      const storedTheme = localStorage.getItem('whatsflow_theme') as 'light' | 'dark';
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        setThemeState(storedTheme);
+      }
 
       setHasLoaded(true);
     }
@@ -280,6 +290,20 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return () => clearTimeout(handler);
     }
   }, [workflows, hasLoaded]);
+
+  // Synchronize dynamic theme state to standard HTML/document class
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const root = document.documentElement;
+      if (theme === 'light') {
+        root.classList.remove('dark');
+        root.classList.add('light');
+      } else {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -712,6 +736,17 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setMessages(prev => prev.filter(m => m.contactId !== contactId));
   };
 
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('whatsflow_theme', newTheme);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
   return (
     <WhatsFlowContext.Provider value={{
       accounts,
@@ -742,7 +777,10 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       toggleWorkflowStatus,
 
       addInteraction,
-      clearChat
+      clearChat,
+      theme,
+      setTheme,
+      toggleTheme
     }}>
       {hasLoaded ? children : null}
     </WhatsFlowContext.Provider>

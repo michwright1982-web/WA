@@ -569,7 +569,7 @@ export default function ChatPage() {
                       {msg.type === 'document' && (
                         <div className={`mb-2.5 p-3 rounded-lg border flex items-center justify-between gap-4 ${
                           isOutgoing 
-                            ? 'bg-zinc-55 border-zinc-200 text-black' 
+                            ? 'bg-zinc-100 border-zinc-200 text-black' 
                             : 'bg-zinc-950 border-zinc-800 text-zinc-300'
                         }`}>
                           <div className="flex items-center gap-2.5 truncate">
@@ -601,7 +601,7 @@ export default function ChatPage() {
                       {msg.type === 'voice' && (
                         <div className={`mb-2.5 p-3 rounded-lg border flex items-center gap-3 ${
                           isOutgoing 
-                            ? 'bg-zinc-55 border-zinc-200 text-black' 
+                            ? 'bg-zinc-100 border-zinc-200 text-black' 
                             : 'bg-zinc-950 border-zinc-800 text-zinc-300'
                         }`}>
                           <button

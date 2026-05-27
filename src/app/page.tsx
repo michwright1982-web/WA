@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Shield, ArrowRight, MessageCircle, BarChart3, GitFork, Check } from 'lucide-react';
+import { Zap, Shield, ArrowRight, MessageCircle, BarChart3, GitFork, Check, Sun, Moon } from 'lucide-react';
+import { useWhatsFlow } from '@/lib/whatsflow-store';
 
 export default function Home() {
   const router = useRouter();
+  const { theme, toggleTheme } = useWhatsFlow();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +34,7 @@ export default function Home() {
           <div className="h-10 w-10 bg-white text-black rounded-xl flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
             <Zap className="h-5 w-5 stroke-[2.5]" />
           </div>
-          <span className="font-semibold text-xl tracking-wider bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+          <span className="font-semibold text-xl tracking-wider bg-gradient-to-r from-zinc-50 to-zinc-400 bg-clip-text text-transparent">
             WhatsFlow
           </span>
         </div>
@@ -43,6 +45,15 @@ export default function Home() {
           <Link href="/dashboard" className="glow-btn text-xs font-semibold px-4 py-2 rounded-lg bg-white text-black shadow-lg">
             Launch Console
           </Link>
+
+          {/* Theme Toggler button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-350 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow-sm"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-400" /> : <Sun className="h-4 w-4 text-yellow-450" />}
+          </button>
         </div>
       </header>
 
@@ -59,7 +70,7 @@ export default function Home() {
             <span>Focus on WhatsApp Business Automation</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] bg-gradient-to-b from-white via-zinc-100 to-zinc-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] bg-gradient-to-b from-zinc-50 via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
             Centralized WhatsApp <br />API Management Platform
           </h1>
 
