@@ -317,6 +317,9 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (incoming.length > 0) {
           console.log('Syncing incoming webhook messages:', incoming);
 
+          // Collect messages that need automation processing
+          const messagesToAutomate: any[] = [];
+
           // Use React functional state updaters to guarantee freshest states and bypass stale closure bugs
           setContacts(prevContacts => {
             let currentContacts = [...prevContacts];
@@ -360,11 +363,9 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 if (!currentMessages.some(m => m.id === newMsg.id)) {
                   currentMessages.push(newMsg);
                   
-                  // Trigger Flow Builder automation matching engine immediately for live message
+                  // Queue for automation if enabled
                   if (contact.automationEnabled !== false) {
-                    setTimeout(() => {
-                      triggerMockIncomingRef.current?.(contact.id, item.body, true, msgType);
-                    }, 500);
+                    messagesToAutomate.push({ contactId: contact.id, body: item.body, msgType });
                   }
                 }
               }
@@ -374,6 +375,15 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             return currentContacts;
           });
+
+          // Trigger Flow Builder automation matching engine safely outside state updaters
+          if (messagesToAutomate.length > 0) {
+            setTimeout(() => {
+              messagesToAutomate.forEach(msg => {
+                triggerMockIncomingRef.current?.(msg.contactId, msg.body, true, msg.msgType);
+              });
+            }, 800);
+          }
 
           // Acknowledge and clear the server queue
           await fetch('/api/webhooks/incoming-queue', { method: 'DELETE' });
