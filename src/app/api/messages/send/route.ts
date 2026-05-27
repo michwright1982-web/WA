@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { phoneNumberId, accessToken, to, body, type, mediaUrl, buttons, templateId } = await request.json();
+    const { phoneNumberId, accessToken, to, body, type, mediaUrl, buttons, templateId, templateLanguage } = await request.json();
 
     if (!phoneNumberId || !accessToken || !to) {
       return NextResponse.json({ error: 'Missing required credentials or recipient number.' }, { status: 400 });
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       payload.template = {
         name: templateId,
         language: {
-          code: 'en_US'
+          code: templateLanguage || 'en_US'
         }
       };
       if (body) {

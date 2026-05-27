@@ -556,7 +556,18 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } as Message;
 
         setMessages(prev => [...prev, finalMsg]);
-        sendMessageToMeta(finalMsg, { templateId: targetActionNode.data.config?.templateId || 'welcome_onboarding' });
+        
+        let resolvedTemplateName = 'welcome_onboarding';
+        let resolvedTemplateLanguage = 'en_US';
+        if (targetActionNode.data.config?.templateId) {
+          const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
+          if (tmpl) {
+            resolvedTemplateName = tmpl.name;
+            resolvedTemplateLanguage = tmpl.language;
+          }
+        }
+        
+        sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage });
       }, 1200);
     }
   };
@@ -747,7 +758,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    sendMessageToMeta(newMsg, { templateId: tmpl.name });
+    sendMessageToMeta(newMsg, { templateId: tmpl.name, templateLanguage: tmpl.language });
   };
 
   const addContact = (ct: Omit<Contact, 'id'>) => {
