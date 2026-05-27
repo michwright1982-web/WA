@@ -215,7 +215,7 @@ export default function WorkflowsPage() {
   };
 
   const handleConnectStart = (e: React.MouseEvent, sourceId: string, portType: string = 'default') => {
-    if (activeNodeId) return; // Block port connections when popup is open
+    if (activeNodeId) setActiveNodeId(null); // Close popup when starting a connection
     e.stopPropagation();
     e.preventDefault();
     setConnectingSourceId(sourceId);
@@ -609,22 +609,28 @@ export default function WorkflowsPage() {
                   const destNode = activeWorkflow.nodes.find(n => n.id === edge.target);
                   if (!srcNode || !destNode) return null;
                   
-                  // Connect right side of source node to left side of target node
-                  const x1 = srcNode.position.x + 208; // width of node (w-52 = 208px)
+                  const nodeWidth = 208; // w-52 = 208px
                   
-                  // Determine vertical offset based on port type (multiple dynamic branches on If-Else and Switch nodes)
-                  let y1 = srcNode.position.y + 40;  // default approximate center height
+                  // Calculate source node height for vertical center
                   const srcSubType = srcNode.data.config?.subType || '';
-                  if (srcSubType === 'if_else' || srcSubType === 'switch_logic') {
-                    const branches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
-                      { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
-                    ] : [
-                      { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
-                      { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                    ]);
-                    let portIndex = branches.findIndex((b: any) => b.id === (edge as any).port);
+                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                  const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
+                    { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
+                  ] : srcSubType === 'switch_logic' ? [
+                    { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
+                    { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                  ] : []);
+                  const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
+                  
+                  // Connect from RIGHT-CENTER of source node
+                  const x1 = srcNode.position.x + nodeWidth;
+                  
+                  // Determine vertical offset based on port type
+                  let y1 = srcNode.position.y + (srcHeight / 2);  // default: exact vertical center
+                  if (isSrcBranching) {
+                    let portIndex = srcBranches.findIndex((b: any) => b.id === (edge as any).port);
                     if (portIndex === -1 && ((edge as any).port === 'else' || (edge as any).port === 'no')) {
-                      portIndex = branches.length; // Else is at the bottom
+                      portIndex = srcBranches.length; // Else is at the bottom
                     }
                     if (portIndex === -1) portIndex = 0;
                     const rowHeight = 28;
@@ -633,23 +639,26 @@ export default function WorkflowsPage() {
                     y1 = srcNode.position.y + listTop + portIndex * (rowHeight + rowGap) + (rowHeight / 2);
                   }
                   
+                  // Calculate destination node height for vertical center
                   const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic';
                   const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
                   const destHeight = isDestBranching 
                     ? (66 + (destBranches.length + 1) * 32) 
                     : 80;
+                  
+                  // Connect to LEFT-CENTER of target node
                   const x2 = destNode.position.x;
-                  const y2 = destNode.position.y + (destHeight / 2); // Connect to EXACT center of left side
+                  const y2 = destNode.position.y + (destHeight / 2);
 
                   // Define curve path stroke colors based on port type
                   let strokeColor = "url(#edge-gradient)";
                   let glowColor = "rgba(99, 102, 241, 0.12)";
-                  if (srcSubType === 'if_else' || srcSubType === 'switch_logic') {
+                  if (isSrcBranching) {
                     if (edge.port === 'else' || edge.port === 'no') {
-                      strokeColor = "#f43f5e"; // Rose red for NO / ELSE path
+                      strokeColor = "#f43f5e";
                       glowColor = "rgba(244, 63, 94, 0.15)";
                     } else {
-                      strokeColor = "#10b981"; // Emerald green for customized branch paths
+                      strokeColor = "#10b981";
                       glowColor = "rgba(16, 185, 129, 0.15)";
                     }
                   }
@@ -670,7 +679,7 @@ export default function WorkflowsPage() {
                         strokeWidth="2"
                         fill="none"
                       />
-                      <circle cx={x1} cy={y1} r="3" fill={(srcSubType === 'if_else' || srcSubType === 'switch_logic') ? ((edge.port === 'else' || edge.port === 'no') ? '#f43f5e' : '#10b981') : '#6366f1'} />
+                      <circle cx={x1} cy={y1} r="3" fill={isSrcBranching ? ((edge.port === 'else' || edge.port === 'no') ? '#f43f5e' : '#10b981') : '#6366f1'} />
                       <circle cx={x2} cy={y2} r="3.5" fill="#38bdf8" />
                     </g>
                   );
@@ -680,20 +689,24 @@ export default function WorkflowsPage() {
                 {connectingSourceId && connectingMousePos && (() => {
                   const srcNode = activeWorkflow.nodes.find(n => n.id === connectingSourceId);
                   if (!srcNode) return null;
-                  const x1 = srcNode.position.x + 208;
+                  const nodeWidth = 208;
+                  const x1 = srcNode.position.x + nodeWidth;
                   
-                  let y1 = srcNode.position.y + 40;
                   const srcSubType = srcNode.data.config?.subType || '';
-                  if (srcSubType === 'if_else' || srcSubType === 'switch_logic') {
-                    const branches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
-                      { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
-                    ] : [
-                      { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
-                      { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                    ]);
-                    let portIndex = branches.findIndex((b: any) => b.id === connectingPortType);
+                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                  const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
+                    { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
+                  ] : srcSubType === 'switch_logic' ? [
+                    { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
+                    { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                  ] : []);
+                  const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
+                  
+                  let y1 = srcNode.position.y + (srcHeight / 2);
+                  if (isSrcBranching) {
+                    let portIndex = srcBranches.findIndex((b: any) => b.id === connectingPortType);
                     if (portIndex === -1 && (connectingPortType === 'else' || connectingPortType === 'no')) {
-                      portIndex = branches.length;
+                      portIndex = srcBranches.length;
                     }
                     if (portIndex === -1) portIndex = 0;
                     const rowHeight = 28;
@@ -718,25 +731,29 @@ export default function WorkflowsPage() {
 
             {/* Actual Interactive Node Blocks */}
             <div className="absolute inset-0">
-              {/* Midpoint interactive connection delete buttons rendered as standard absolutely positioned HTML elements */}
+              {/* Midpoint interactive connection delete buttons on the bezier curve */}
               {activeWorkflow?.edges.map((edge) => {
                 const srcNode = activeWorkflow.nodes.find(n => n.id === edge.source);
                 const destNode = activeWorkflow.nodes.find(n => n.id === edge.target);
                 if (!srcNode || !destNode) return null;
                 
-                const x1 = srcNode.position.x + 208;
-                let y1 = srcNode.position.y + 40;
+                const nodeWidth = 208;
                 const srcSubType = srcNode.data.config?.subType || '';
-                if (srcSubType === 'if_else' || srcSubType === 'switch_logic') {
-                  const branches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
-                    { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
-                  ] : [
-                    { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
-                    { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                  ]);
-                  let portIndex = branches.findIndex((b: any) => b.id === edge.port);
+                const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
+                  { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
+                ] : srcSubType === 'switch_logic' ? [
+                  { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
+                  { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                ] : []);
+                const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
+                
+                const x1 = srcNode.position.x + nodeWidth;
+                let y1 = srcNode.position.y + (srcHeight / 2);
+                if (isSrcBranching) {
+                  let portIndex = srcBranches.findIndex((b: any) => b.id === edge.port);
                   if (portIndex === -1 && (edge.port === 'else' || edge.port === 'no')) {
-                    portIndex = branches.length;
+                    portIndex = srcBranches.length;
                   }
                   if (portIndex === -1) portIndex = 0;
                   const rowHeight = 28;
@@ -752,8 +769,15 @@ export default function WorkflowsPage() {
                   : 80;
                 const x2 = destNode.position.x;
                 const y2 = destNode.position.y + (destHeight / 2);
-                const midX = (x1 + x2) / 2;
-                const midY = (y1 + y2) / 2;
+                
+                // Calculate actual bezier curve midpoint at t=0.5 for cubic bezier
+                const cp1x = (x1 + x2) / 2;
+                const cp1y = y1;
+                const cp2x = (x1 + x2) / 2;
+                const cp2y = y2;
+                const t = 0.5;
+                const bezMidX = Math.pow(1-t,3)*x1 + 3*Math.pow(1-t,2)*t*cp1x + 3*(1-t)*Math.pow(t,2)*cp2x + Math.pow(t,3)*x2;
+                const bezMidY = Math.pow(1-t,3)*y1 + 3*Math.pow(1-t,2)*t*cp1y + 3*(1-t)*Math.pow(t,2)*cp2y + Math.pow(t,3)*y2;
 
                 return (
                   <button
@@ -764,7 +788,7 @@ export default function WorkflowsPage() {
                       const updatedEdges = activeWorkflow.edges.filter(e => e.id !== edge.id);
                       updateWorkflow(activeWorkflow.id, activeWorkflow.nodes, updatedEdges);
                     }}
-                    style={{ left: `${midX - 9}px`, top: `${midY - 9}px` }}
+                    style={{ left: `${bezMidX - 9}px`, top: `${bezMidY - 9}px` }}
                     className="absolute h-4.5 w-4.5 bg-zinc-950 hover:bg-red-950/90 border border-zinc-800 hover:border-red-500/80 text-zinc-400 hover:text-red-400 rounded-full flex items-center justify-center font-bold text-[9px] transition-all shadow-[0_2px_10px_rgba(0,0,0,0.9)] cursor-pointer select-none z-30"
                     title="Delete Connection"
                   >
@@ -807,18 +831,19 @@ export default function WorkflowsPage() {
                      isSelected ? 'ring-2 ring-indigo-500 scale-[1.03] border-glow' : ''
                     } transition-[border-color,background-color,box-shadow,transform] duration-200`}
                   >
-                    {/* Left Hand Side Input Port Handle Dot */}
+                    {/* Left Hand Side Input Port Handle Dot — centered vertically */}
                     <div 
-                      style={{ top: '50%' }}
+                      style={{ top: `${isBranching ? (nodeHeight / 2) : (80 / 2)}px` }}
                       className="absolute left-[-6px] -translate-y-1/2 h-3 w-3 bg-sky-400 border-2 border-zinc-950 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)] z-25 pointer-events-none"
                       title="Incoming connection port"
                     />
 
-                    {/* Drag-and-Connect Right Handle Node Port for non-branching nodes */}
+                    {/* Drag-and-Connect Right Handle Node Port for non-branching nodes — centered vertically */}
                     {!isBranching && (
                       <div 
                         onMouseDown={(e) => handleConnectStart(e, node.id, 'default')}
-                        className="connect-handle absolute right-[-6px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 bg-indigo-500 border-2 border-zinc-950 rounded-full cursor-crosshair hover:bg-white hover:scale-125 transition-all shadow-[0_0_8px_rgba(99,102,241,0.6)] z-25"
+                        style={{ top: `${80 / 2}px` }}
+                        className="connect-handle absolute right-[-6px] -translate-y-1/2 h-3.5 w-3.5 bg-indigo-500 border-2 border-zinc-950 rounded-full cursor-crosshair hover:bg-white hover:scale-125 transition-all shadow-[0_0_8px_rgba(99,102,241,0.6)] z-25"
                         title="Drag to connect next step"
                       />
                     )}
