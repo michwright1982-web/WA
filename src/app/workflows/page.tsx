@@ -206,6 +206,11 @@ export default function WorkflowsPage() {
     if (!canvas) return;
 
     const onWheel = (e: WheelEvent) => {
+      // If the scroll is over the API actions drawer, allow native scrolling
+      if ((e.target as HTMLElement).closest('.api-actions-drawer')) {
+        return;
+      }
+
       const { zoom: currentZoom, panOffset: currentPan, activeNodeId: currentActiveNodeId } = stateRef.current;
       if (currentActiveNodeId) return; // Block when popup is open
 
@@ -1004,7 +1009,7 @@ export default function WorkflowsPage() {
 
             {/* Right-to-Left Sliding WhatsApp API Actions Drawer (Confined to Canvas) */}
             <div 
-              className={`absolute top-0 right-0 h-full border-l border-zinc-800 bg-zinc-900/95 backdrop-blur-md shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-30 transition-all duration-300 flex flex-col ${
+              className={`api-actions-drawer absolute top-0 right-0 h-full border-l border-zinc-800 bg-zinc-900/95 backdrop-blur-md shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-30 transition-all duration-300 flex flex-col ${
                 isApiActionsExpanded ? 'w-80' : 'w-12'
               }`}
             >
