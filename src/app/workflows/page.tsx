@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { useWhatsFlow, FlowNode } from '@/lib/whatsflow-store';
 import { 
@@ -97,6 +97,8 @@ export default function WorkflowsPage() {
   const { workflows, updateWorkflow, toggleWorkflowStatus, templates } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState(workflows[0]?.id || '');
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Drag & drop state for matching input borders
   const [draggedOverField, setDraggedOverField] = useState<string | null>(null);
@@ -193,6 +195,50 @@ export default function WorkflowsPage() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  const stateRef = useRef({ zoom, panOffset, activeNodeId });
+  useEffect(() => {
+    stateRef.current = { zoom, panOffset, activeNodeId };
+  }, [zoom, panOffset, activeNodeId]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onWheel = (e: WheelEvent) => {
+      const { zoom: currentZoom, panOffset: currentPan, activeNodeId: currentActiveNodeId } = stateRef.current;
+      if (currentActiveNodeId) return; // Block when popup is open
+
+      e.preventDefault(); // This is the crucial part to prevent page scrolling/zooming!
+
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch to zoom (trackpad) or Cmd/Ctrl + Scroll
+        const zoomSensitivity = 0.01;
+        let newZoom = currentZoom - e.deltaY * zoomSensitivity;
+        newZoom = Math.max(0.2, Math.min(3, newZoom));
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const scaleChange = newZoom - currentZoom;
+        const newOffsetX = currentPan.x - ((mouseX - currentPan.x) * (scaleChange / currentZoom));
+        const newOffsetY = currentPan.y - ((mouseY - currentPan.y) * (scaleChange / currentZoom));
+
+        setZoom(newZoom);
+        setPanOffset({ x: newOffsetX, y: newOffsetY });
+      } else {
+        // Two-finger trackpad drag for panning
+        setPanOffset({
+          x: currentPan.x - e.deltaX,
+          y: currentPan.y - e.deltaY
+        });
+      }
+    };
+
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent, node: FlowNode) => {
     if (activeNodeId) return; // Block dragging when popup is open
@@ -292,46 +338,6 @@ export default function WorkflowsPage() {
     setPanStart({
       x: e.clientX - panOffset.x,
       y: e.clientY - panOffset.y
-    });
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (activeNodeId) return; // Block when popup is open
-
-    // Prevent default browser zooming/scrolling
-    // Note: React synthetic wheel events might be passive, but we'll try to prevent default anyway.
-    if (e.cancelable) {
-      e.preventDefault();
-    }
-
-    if (e.ctrlKey || e.metaKey) {
-      // Pinch to zoom (trackpad) or Cmd/Ctrl + Scroll
-      const zoomSensitivity = 0.01;
-      let newZoom = zoom - e.deltaY * zoomSensitivity;
-      newZoom = Math.max(0.2, Math.min(3, newZoom)); // Clamp zoom between 0.2x and 3x
-
-      // Calculate mouse position relative to the canvas
-      const canvas = document.getElementById('flow-canvas');
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        // Keep the point under the cursor in the same place
-        const scaleChange = newZoom - zoom;
-        const newOffsetX = panOffset.x - ((mouseX - panOffset.x) * (scaleChange / zoom));
-        const newOffsetY = panOffset.y - ((mouseY - panOffset.y) * (scaleChange / zoom));
-
-        setZoom(newZoom);
-        setPanOffset({ x: newOffsetX, y: newOffsetY });
-      }
-    } else {
-      // Two-finger trackpad drag for panning
-      setPanOffset(prev => ({
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY
-      }));
-    }
   };
 
   const handleNodeMouseUp = (e: React.MouseEvent, targetId: string) => {
@@ -603,11 +609,11 @@ export default function WorkflowsPage() {
           {/* Node Editor Canvas */}
           <div 
             id="flow-canvas"
+            ref={canvasRef}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
             className="flex-1 border border-zinc-800 rounded-2xl bg-zinc-950/60 relative overflow-hidden bg-grid-pattern shadow-inner flex flex-col justify-between cursor-grab active:cursor-grabbing"
           >
             
