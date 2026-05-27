@@ -528,9 +528,28 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         if (subType === 'send_template') {
           replyMsg.type = 'template';
+          let bodyText = '';
+          let buttons = ['Get Started', 'Contact Sales'];
           const templateParam = targetActionNode.data.config?.messageText || 'Customer';
-          replyMsg.body = `[HSM Template Welcome]: Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-          replyMsg.buttons = ['Get Started', 'Contact Sales'];
+
+          if (targetActionNode.data.config?.templateId) {
+             const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
+             if (tmpl) {
+                 bodyText = tmpl.bodyText;
+                 if (tmpl.buttons && tmpl.buttons.length > 0) {
+                     buttons = tmpl.buttons;
+                 }
+                 bodyText = bodyText.replace('{{1}}', templateParam);
+                 bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
+             } else {
+                 bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+             }
+          } else {
+             bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+          }
+
+          replyMsg.body = bodyText;
+          replyMsg.buttons = buttons;
         } else if (subType === 'send_media') {
           replyMsg.type = 'image';
           replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
