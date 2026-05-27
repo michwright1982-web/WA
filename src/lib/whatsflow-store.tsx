@@ -484,7 +484,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             for (const branch of branches) {
               const kw = branch.keyword || '';
-              if (kw && text.toLowerCase().includes(kw.toLowerCase())) {
+              if (kw && (text || '').toLowerCase().includes(kw.toLowerCase())) {
                 matchedBranchId = branch.id;
                 break;
               }
@@ -519,7 +519,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             } as FlowNode;
           } else {
             // Standard keyword condition match
-            if (keyword && text.toLowerCase().includes(keyword.toLowerCase())) {
+            if (keyword && (text || '').toLowerCase().includes(keyword.toLowerCase())) {
               const actionEdges = activeWorkflow.edges.filter(e => e.source === nextNode.id);
               for (const actionEdge of actionEdges) {
                 const actNode = activeWorkflow.nodes.find(n => n.id === actionEdge.target && n.type === 'actionNode');
@@ -554,105 +554,100 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Execute resolved action node configurations matching Meta API specs
     if (targetActionNode) {
       setTimeout(() => {
-        const subType = targetActionNode.data.config?.subType || 'send_text';
-        let replyMsg: Omit<Message, 'id' | 'timestamp'> = {
-          accountId: activeAccountId,
-          contactId: cId,
-          type: 'text',
-          body: targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.',
-          direction: 'OUTGOING',
-          status: 'read'
-        };
+        try {
+          const subType = targetActionNode.data.config?.subType || 'send_text';
+          let replyMsg: Omit<Message, 'id' | 'timestamp'> = {
+            accountId: activeAccountId,
+            contactId: cId,
+            type: 'text',
+            body: targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.',
+            direction: 'OUTGOING',
+            status: 'read'
+          };
 
-        if (subType === 'send_message') {
-          const sendOption = targetActionNode.data.config?.sendOption || 'message';
-          const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
+          if (subType === 'send_message') {
+            const sendOption = targetActionNode.data.config?.sendOption || 'message';
+            const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
+            
+            if (sendOption === 'template') {
+              replyMsg.type = 'template';
+              let bodyText = '';
+              let buttons = ['Get Started', 'Contact Sales'];
+              const templateParam = targetActionNode.data.config?.messageText || 'Customer';
+
+              if (targetActionNode.data.config?.templateId) {
+                 const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
+                 if (tmpl) {
+                     bodyText = tmpl.bodyText;
+                     if (tmpl.buttons && tmpl.buttons.length > 0) {
+                         buttons = tmpl.buttons;
+                     }
+                     bodyText = bodyText.replace('{{1}}', templateParam);
+                     bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
+                 } else {
+                     bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+                 }
+              } else {
+                 bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+              }
+
+              replyMsg.body = bodyText;
+              replyMsg.buttons = buttons;
+            } else {
+              if (msgFormat === 'document') {
+                replyMsg.type = 'image';
+                replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
+                replyMsg.body = targetActionNode.data.config?.messageText || 'Sending attached media document...';
+              } else {
+                replyMsg.type = 'text';
+                replyMsg.body = targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.';
+              }
+            }
+          } else if (subType === 'send_buttons') {
+            replyMsg.type = 'button';
+            replyMsg.buttons = targetActionNode.data.config?.buttonOptions ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim()) : ['Onboarding', 'Documentation'];
+            replyMsg.body = targetActionNode.data.config?.messageText || 'Please click one of the interactive options below:';
+          } else if (subType === 'ai_assistant') {
+            replyMsg.type = 'text';
+            replyMsg.body = `[AI Reply Matching Prompt]: "${targetActionNode.data.config?.prompt || 'Support Bot Instruction'}". E.g., Yes, I can help you with your query "${text}"!`;
+          } else if (subType === 'http_call') {
+            replyMsg.type = 'text';
+            replyMsg.body = `[API POST Callback Triggered]: Connected ${targetActionNode.data.config?.apiUrl || 'https://api.mybusiness.com/callback'} using ${targetActionNode.data.config?.httpMethod || 'POST'}. Status 200 OK.`;
+          } else if (subType === 'change_label') {
+            const newLabel = targetActionNode.data.config?.newLabel || 'new';
+            updateContact(cId, { label: newLabel });
+            replyMsg.type = 'text';
+            replyMsg.body = `[System]: Contact label automatically changed to "${newLabel}"`;
+          } else if (subType === 'mark_read') {
+            return;
+          }
+
+          const finalMsg = {
+            ...replyMsg,
+            id: `m-auto-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: new Date().toISOString()
+          } as Message;
+
+          setMessages(prev => [...prev, finalMsg]);
           
-          if (sendOption === 'template') {
-            replyMsg.type = 'template';
-            let bodyText = '';
-            let buttons = ['Get Started', 'Contact Sales'];
-            const templateParam = targetActionNode.data.config?.messageText || 'Customer';
+          // Don't send internal system messages to Meta API
+          if (subType !== 'change_label') {
+            let resolvedTemplateName = 'welcome_onboarding';
+            let resolvedTemplateLanguage = 'en_US';
+            let templateParams: string[] = [];
 
             if (targetActionNode.data.config?.templateId) {
-               const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
-               if (tmpl) {
-                   bodyText = tmpl.bodyText;
-                   if (tmpl.buttons && tmpl.buttons.length > 0) {
-                       buttons = tmpl.buttons;
-                   }
-                   bodyText = bodyText.replace('{{1}}', templateParam);
-                   bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
-               } else {
-                   bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-               }
-            } else {
-               bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
+              const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
+              if (tmpl) {
+                resolvedTemplateName = tmpl.name;
+                resolvedTemplateLanguage = tmpl.language;
+              }
             }
-
-            replyMsg.body = bodyText;
-            replyMsg.buttons = buttons;
-          } else {
-            if (msgFormat === 'document') {
-              replyMsg.type = 'image';
-              replyMsg.mediaUrl = targetActionNode.data.config?.mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe';
-              replyMsg.body = targetActionNode.data.config?.messageText || 'Sending attached media document...';
-            } else {
-              replyMsg.type = 'text';
-              replyMsg.body = targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.';
-            }
-          }
-        } else if (subType === 'send_buttons') {
-          replyMsg.type = 'button';
-          replyMsg.buttons = targetActionNode.data.config?.buttonOptions ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim()) : ['Onboarding', 'Documentation'];
-          replyMsg.body = targetActionNode.data.config?.messageText || 'Please click one of the interactive options below:';
-        } else if (subType === 'ai_assistant') {
-          replyMsg.type = 'text';
-          replyMsg.body = `[AI Reply Matching Prompt]: "${targetActionNode.data.config?.prompt || 'Support Bot Instruction'}". E.g., Yes, I can help you with your query "${text}"!`;
-        } else if (subType === 'http_call') {
-          replyMsg.type = 'text';
-          replyMsg.body = `[API POST Callback Triggered]: Connected ${targetActionNode.data.config?.apiUrl || 'https://api.mybusiness.com/callback'} using ${targetActionNode.data.config?.httpMethod || 'POST'}. Status 200 OK.`;
-        } else if (subType === 'change_label') {
-          const newLabel = targetActionNode.data.config?.newLabel || 'new';
-          updateContact(cId, { label: newLabel });
-          replyMsg.type = 'text';
-          replyMsg.body = `[System]: Contact label automatically changed to "${newLabel}"`;
-        } else if (subType === 'mark_read') {
-          return;
-        }
-
-        const finalMsg = {
-          ...replyMsg,
-          id: `m-auto-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toISOString()
-        } as Message;
-
-        setMessages(prev => [...prev, finalMsg]);
-        
-        // Don't send internal system messages to Meta API
-        if (subType !== 'change_label') {
-          let resolvedTemplateName = 'welcome_onboarding';
-        let resolvedTemplateLanguage = 'en_US';
-        let templateParams: string[] = [];
-
-        if (targetActionNode.data.config?.templateId) {
-          const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
-          if (tmpl) {
-            resolvedTemplateName = tmpl.name;
-            resolvedTemplateLanguage = tmpl.language;
             
-            const templateParam = targetActionNode.data.config?.messageText || 'Customer';
-            const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
-            if (matches) {
-              matches.forEach((match, index) => {
-                if (index === 0) templateParams.push(templateParam);
-                else templateParams.push(`Value${index + 1}`);
-              });
-            }
+            sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
           }
-        }
-        
-          sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
+        } catch (err) {
+          console.error('[DEBUG] triggerMockIncoming execution error:', err);
         }
       }, 50);
     }
@@ -888,7 +883,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateWorkflow = (id: string, nodes: FlowNode[], edges: FlowEdge[]) => {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, nodes, edges } : w));
+    setWorkflows(prev => {
+      const next = prev.map(w => w.id === id ? { ...w, nodes, edges } : w);
+      localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
+      return next;
+    });
   };
 
   const toggleWorkflowStatus = (id: string) => {
