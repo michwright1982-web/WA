@@ -34,6 +34,7 @@ export interface Contact {
   automationEnabled?: boolean;
   leadStatus?: 'qualified' | 'not_qualified' | 'new';
   interactions?: Interaction[];
+  profilePicUrl?: string;
 }
 
 export interface Message {

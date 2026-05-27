@@ -38,6 +38,8 @@ export default function ChatPage() {
     contacts, 
     messages, 
     templates,
+    accounts,
+    activeAccountId,
     activeContactId, 
     setActiveContactId,
     sendTextMessage, 
@@ -50,8 +52,45 @@ export default function ChatPage() {
     clearChat
   } = useWhatsFlow();
 
+  const activeAccount = accounts.find(a => a.id === activeAccountId);
+
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
+
+  // Fetch WhatsApp profile pictures for contacts that don't have one yet
+  const [fetchedPicIds, setFetchedPicIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isMounted || !activeAccount?.accessToken) return;
+
+    const contactsNeedingPic = contacts.filter(
+      c => !c.profilePicUrl && c.phoneNumber && !fetchedPicIds.has(c.id)
+    );
+
+    if (contactsNeedingPic.length === 0) return;
+
+    // Mark as fetching to avoid duplicate requests
+    setFetchedPicIds(prev => {
+      const next = new Set(prev);
+      contactsNeedingPic.forEach(c => next.add(c.id));
+      return next;
+    });
+
+    contactsNeedingPic.forEach(async (contact) => {
+      try {
+        const res = await fetch(
+          `/api/profile-pic?phone=${encodeURIComponent(contact.phoneNumber)}&token=${encodeURIComponent(activeAccount.accessToken)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profilePicUrl) {
+            updateContact(contact.id, { profilePicUrl: data.profilePicUrl });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile pic for', contact.name, err);
+      }
+    });
+  }, [isMounted, contacts, activeAccount?.accessToken]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typedMessage, setTypedMessage] = useState('');
@@ -228,10 +267,14 @@ export default function ChatPage() {
                 >
                   {/* Avatar with lead status dot */}
                   <div className="relative">
-                    <div className={`h-9 w-9 rounded-full bg-zinc-800 border flex items-center justify-center font-bold text-zinc-300 text-xs ${
+                    <div className={`h-9 w-9 rounded-full bg-zinc-800 border flex items-center justify-center font-bold text-zinc-300 text-xs overflow-hidden ${
                       hasUnread ? 'border-indigo-500/60' : 'border-zinc-700'
                     }`}>
-                      <User className="h-4.5 w-4.5" />
+                      {ct.profilePicUrl ? (
+                        <img src={ct.profilePicUrl} alt={ct.name} className="h-full w-full object-cover rounded-full" />
+                      ) : (
+                        <User className="h-4.5 w-4.5" />
+                      )}
                     </div>
                     <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-zinc-950 ${leadColor}`}
                       title={ct.leadStatus === 'qualified' ? 'Qualified' : ct.leadStatus === 'not_qualified' ? 'Not Qualified' : 'New Lead'}
@@ -281,8 +324,12 @@ export default function ChatPage() {
           {/* Active Contact Header */}
           <div className="h-14 px-6 border-b border-zinc-800/80 bg-zinc-950/20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs">
-                {activeContact?.name[0]}
+              <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs overflow-hidden">
+                {activeContact?.profilePicUrl ? (
+                  <img src={activeContact.profilePicUrl} alt={activeContact?.name} className="h-full w-full object-cover rounded-full" />
+                ) : (
+                  activeContact?.name[0]
+                )}
               </div>
               <div>
                 <span className="text-xs font-semibold text-zinc-200 block">{activeContact?.name}</span>
