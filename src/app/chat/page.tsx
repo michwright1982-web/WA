@@ -639,6 +639,14 @@ export default function ChatPage() {
                               <span>🔘 Interactive Click:</span>
                               <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{msg.body}</span>
                             </span>
+                          ) : msg.type === 'flow' ? (
+                            <div className="flex flex-col gap-1.5">
+                              <span className="inline-flex items-center gap-1.5 text-indigo-400 font-bold uppercase tracking-wide text-[9px]">
+                                <span>📱 WhatsApp Flow</span>
+                              </span>
+                              <span className="text-zinc-200">{msg.body}</span>
+                              <div className="mt-2 w-full bg-zinc-800 text-zinc-300 text-center py-1.5 rounded-lg text-[10px] font-bold border border-zinc-700 shadow-sm">Open Flow</div>
+                            </div>
                           ) : (
                             msg.body
                           )}

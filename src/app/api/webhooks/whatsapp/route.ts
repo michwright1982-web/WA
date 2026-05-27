@@ -159,7 +159,7 @@ export async function POST(request: Request) {
                     phoneNumber: incomingMessage.phoneNumber,
                     senderName: 'WhatsFlow Bot',
                     body: result.responseMessage.body,
-                    type: result.responseMessage.type === 'template' ? 'template' : 'text',
+                    type: result.responseMessage.type || 'text',
                     direction: 'OUTGOING',
                     buttons: result.responseMessage.buttons,
                     timestamp: new Date().toISOString(),

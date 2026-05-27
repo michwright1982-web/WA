@@ -41,7 +41,7 @@ export interface Message {
   id: string;
   accountId: string;
   contactId: string;
-  type: 'text' | 'image' | 'button' | 'list' | 'template' | 'document' | 'voice';
+  type: 'text' | 'image' | 'button' | 'list' | 'template' | 'document' | 'voice' | 'flow';
   body: string;
   direction: 'INCOMING' | 'OUTGOING';
   status: 'sent' | 'delivered' | 'read' | 'failed';
