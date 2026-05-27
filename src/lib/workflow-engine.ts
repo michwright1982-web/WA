@@ -33,13 +33,20 @@ export interface WorkflowExecutionResult {
   actionNodeId?: string;
   actionType?: string;
   responseMessage?: {
-    type: 'text' | 'template' | 'button' | 'image' | 'document';
+    type: 'text' | 'template' | 'button' | 'image' | 'document' | 'flow';
     body: string;
     templateName?: string;
     templateLanguage?: string;
     templateParams?: string[];
     buttons?: string[];
     mediaUrl?: string;
+    flowId?: string;
+    flowToken?: string;
+    flowScreen?: string;
+    flowCta?: string;
+    flowHeader?: string;
+    flowFooter?: string;
+    flowPayload?: string;
   };
   error?: string;
 }
@@ -256,6 +263,18 @@ export function executeWorkflow(
       type: 'text',
       body: interpolatedMessageText || 'Hello! This is an automated response.'
     };
+  } else if (actionSubType === 'send_flow') {
+    responseMessage = {
+      type: 'flow',
+      body: targetActionNode.data.config?.flowBody || 'Fill out your details to start!',
+      flowHeader: targetActionNode.data.config?.flowHeader || '',
+      flowFooter: targetActionNode.data.config?.flowFooter || '',
+      flowCta: targetActionNode.data.config?.flowCta || 'Open Flow',
+      flowId: targetActionNode.data.config?.flowId || '',
+      flowToken: targetActionNode.data.config?.flowToken || '',
+      flowScreen: targetActionNode.data.config?.flowScreen || '',
+      flowPayload: targetActionNode.data.config?.flowPayload || '{}'
+    };
   } else if (actionSubType === 'ai_assistant') {
     responseMessage = {
       type: 'text',
@@ -328,6 +347,41 @@ export async function sendWhatsAppMessage(
         }))
       }
     };
+  } else if (msg.type === 'flow' && msg.flowId) {
+    payload.type = 'interactive';
+    
+    let parsedData = {};
+    try {
+      parsedData = msg.flowPayload ? JSON.parse(msg.flowPayload) : {};
+    } catch (e) {
+      console.warn('[WorkflowEngine] Invalid JSON in flowPayload, ignoring data block.');
+    }
+
+    payload.interactive = {
+      type: 'flow',
+      body: { text: msg.body },
+      action: {
+        name: 'flow',
+        parameters: {
+          flow_message_version: '3',
+          flow_token: msg.flowToken || `flow-${Date.now()}`,
+          flow_id: msg.flowId,
+          flow_cta: msg.flowCta || 'Open',
+          flow_action: 'navigate',
+          flow_action_payload: {
+            screen: msg.flowScreen || 'SCREEN_ONE',
+            data: parsedData
+          }
+        }
+      }
+    };
+
+    if (msg.flowHeader) {
+      payload.interactive.header = { type: 'text', text: msg.flowHeader };
+    }
+    if (msg.flowFooter) {
+      payload.interactive.footer = { text: msg.flowFooter };
+    }
   } else if (msg.type === 'image' && msg.mediaUrl) {
     payload.type = 'image';
     payload.image = { link: msg.mediaUrl, caption: msg.body || '' };
