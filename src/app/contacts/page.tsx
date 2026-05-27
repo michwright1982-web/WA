@@ -150,7 +150,7 @@ export default function ContactsPage() {
                   <th className="p-4">WhatsApp Phone</th>
                   <th className="p-4">Email</th>
                   <th className="p-4">Assigned Tags</th>
-                  <th className="p-4">CRM Status</th>
+                  <th className="p-4">Qualified Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -170,13 +170,22 @@ export default function ContactsPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-block ${
-                        ct.status === 'active' 
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                          : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                      }`}>
-                        {ct.status}
-                      </span>
+                      <button
+                        onClick={() => {
+                          const next = ct.leadStatus === 'qualified' ? 'not_qualified' : 'qualified';
+                          updateContact(ct.id, { leadStatus: next });
+                        }}
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 cursor-pointer transition-all ${
+                          ct.leadStatus === 'qualified' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' 
+                            : ct.leadStatus === 'not_qualified'
+                              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                        }`}
+                        title="Click to toggle qualified status"
+                      >
+                        {ct.leadStatus === 'qualified' ? '✓ Qualified' : ct.leadStatus === 'not_qualified' ? '✗ Not Qualified' : '● New'}
+                      </button>
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -263,14 +272,14 @@ export default function ContactsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">CRM Status</label>
+                  <label className="text-xs text-zinc-400 block mb-1">Qualified Status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs text-white focus:outline-none"
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="active">Qualified</option>
+                    <option value="inactive">Not Qualified</option>
                   </select>
                 </div>
 
