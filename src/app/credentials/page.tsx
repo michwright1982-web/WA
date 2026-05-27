@@ -31,13 +31,7 @@ export default function CredentialsPage() {
   const [verifyToken, setVerifyToken] = useState('');
 
   const [copied, setCopied] = useState(false);
-  const [domain, setDomain] = useState('https://whatsflow.com');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDomain(window.location.origin);
-    }
-  }, []);
+  const domain = typeof window !== 'undefined' ? window.location.origin : '';
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(`${domain}/api/webhooks/whatsapp`);
@@ -139,7 +133,7 @@ export default function CredentialsPage() {
               <div className="flex items-center gap-3 pt-2">
                 <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-lg overflow-hidden border-glow">
                   <div className="px-3 py-1.5 font-mono text-[10px] text-zinc-400 select-all">
-                    {domain}/api/webhooks/whatsapp
+                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp
                   </div>
                   <button 
                     onClick={handleCopyWebhook}
