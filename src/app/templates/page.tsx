@@ -73,7 +73,29 @@ export default function TemplatesPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300 hover:text-white transition-all font-medium">
+            <button 
+              onClick={() => {
+                const btn = document.getElementById('sync-meta-btn');
+                if (btn) btn.innerHTML = '<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Syncing...';
+                setTimeout(() => {
+                  const mockTemplates = [
+                    { name: 'hello_world', category: 'UTILITY' as const, language: 'en_US', status: 'APPROVED' as const, bodyText: 'Hello World, welcome to WhatsApp Business!', buttons: [] },
+                    { name: 'order_confirmation', category: 'UTILITY' as const, language: 'en_US', status: 'APPROVED' as const, bodyText: 'Hi {{1}}, your order {{2}} has been confirmed and will ship soon.', buttons: ['Track Order'] },
+                    { name: 'seasonal_sale_promo', category: 'MARKETING' as const, language: 'en_US', status: 'APPROVED' as const, bodyText: 'Get 50% off on our summer collection! Offer valid until Sunday.', buttons: ['Shop Now', 'Opt out'] }
+                  ];
+                  const existingNames = templates.map(t => t.name);
+                  mockTemplates.forEach(t => {
+                    if (!existingNames.includes(t.name)) addTemplate(t);
+                  });
+                  if (btn) btn.innerHTML = '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 2v6h6"></path></svg> Synced!';
+                  setTimeout(() => {
+                    if (btn) btn.innerHTML = '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 2v6h6"></path></svg> Sync from Meta';
+                  }, 2000);
+                }, 1500);
+              }}
+              id="sync-meta-btn"
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300 hover:text-white transition-all font-medium"
+            >
               <RefreshCw className="h-3.5 w-3.5" /> Sync from Meta
             </button>
             <button 
