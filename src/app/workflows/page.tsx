@@ -101,7 +101,27 @@ const getNodeIcon = (subType: string, type: string) => {
 
 export default function WorkflowsPage() {
   const { workflows, updateWorkflow, toggleWorkflowStatus, templates, addWorkflow } = useWhatsFlow();
-  const [selectedFlowId, setSelectedFlowId] = useState(workflows[0]?.id || '');
+  const [selectedFlowId, setSelectedFlowId] = useState('');
+
+  // Restore active workflow selection from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && workflows.length > 0 && !selectedFlowId) {
+      const persisted = localStorage.getItem('whatsflow_active_workflow_id');
+      if (persisted && workflows.some(w => w.id === persisted)) {
+        setSelectedFlowId(persisted);
+      } else {
+        setSelectedFlowId(workflows[0].id);
+      }
+    }
+  }, [workflows, selectedFlowId]);
+
+  // Persist active workflow selection to localStorage
+  useEffect(() => {
+    if (selectedFlowId) {
+      localStorage.setItem('whatsflow_active_workflow_id', selectedFlowId);
+    }
+  }, [selectedFlowId]);
+
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   
   const canvasRef = useRef<HTMLDivElement>(null);

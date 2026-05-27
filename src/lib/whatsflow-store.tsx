@@ -856,7 +856,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: `w-${Date.now()}`,
       createdAt: new Date().toISOString()
     };
-    setWorkflows(prev => [...prev, newWorkflow]);
+    setWorkflows(prev => {
+      const next = [...prev, newWorkflow];
+      localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
+      return next;
+    });
     return newWorkflow;
   };
 
@@ -865,7 +869,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const toggleWorkflowStatus = (id: string) => {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: w.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : w));
+    setWorkflows(prev => {
+      const next = prev.map(w => w.id === id ? { ...w, status: (w.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE') as 'ACTIVE' | 'INACTIVE' } : w);
+      localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
+      return next;
+    });
   };
 
   const addInteraction = (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => {
