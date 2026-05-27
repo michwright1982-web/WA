@@ -559,15 +559,26 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
         let resolvedTemplateName = 'welcome_onboarding';
         let resolvedTemplateLanguage = 'en_US';
+        let templateParams: string[] = [];
+
         if (targetActionNode.data.config?.templateId) {
           const tmpl = templates.find(t => t.id === targetActionNode.data.config!.templateId);
           if (tmpl) {
             resolvedTemplateName = tmpl.name;
             resolvedTemplateLanguage = tmpl.language;
+            
+            const templateParam = targetActionNode.data.config?.messageText || 'Customer';
+            const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
+            if (matches) {
+              matches.forEach((match, index) => {
+                if (index === 0) templateParams.push(templateParam);
+                else templateParams.push(`Value${index + 1}`);
+              });
+            }
           }
         }
         
-        sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage });
+        sendMessageToMeta(finalMsg, { templateId: resolvedTemplateName, templateLanguage: resolvedTemplateLanguage, templateParams });
       }, 1200);
     }
   };
@@ -758,7 +769,17 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    sendMessageToMeta(newMsg, { templateId: tmpl.name, templateLanguage: tmpl.language });
+    
+    let templateParams: string[] = [];
+    const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
+    if (matches) {
+      matches.forEach((match, index) => {
+        if (index === 0) templateParams.push('Client');
+        else templateParams.push(`Value${index + 1}`);
+      });
+    }
+
+    sendMessageToMeta(newMsg, { templateId: tmpl.name, templateLanguage: tmpl.language, templateParams });
   };
 
   const addContact = (ct: Omit<Contact, 'id'>) => {
