@@ -338,6 +338,7 @@ export default function WorkflowsPage() {
     setPanStart({
       x: e.clientX - panOffset.x,
       y: e.clientY - panOffset.y
+    });
   };
 
   const handleNodeMouseUp = (e: React.MouseEvent, targetId: string) => {
