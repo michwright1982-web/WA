@@ -48,6 +48,7 @@ export default function ChatPage() {
     sendDocumentMessage,
     sendVoiceMessage,
     updateContact,
+    deleteContact,
     addInteraction,
     clearChat
   } = useWhatsFlow();
@@ -381,7 +382,6 @@ export default function ChatPage() {
                   onClick={() => {
                     if (!activeContact) return;
                     const next = activeContact.leadStatus === 'qualified' ? 'not_qualified'
-                      : activeContact.leadStatus === 'not_qualified' ? 'new'
                       : 'qualified';
                     updateContact(activeContact.id, { leadStatus: next });
                   }}
@@ -416,17 +416,20 @@ export default function ChatPage() {
                   )}
                 </button>
 
-                {/* Clear Chat Button */}
+                {/* Delete Contact Button */}
                 <button
                   onClick={() => {
-                    if (confirm("Are you sure you want to delete all messages for this contact? This cannot be undone.")) {
-                      clearChat(activeContact.id);
+                    if (confirm(`Are you sure you want to delete "${activeContact.name}"? This will remove the contact and all their messages permanently.`)) {
+                      const contactId = activeContact.id;
+                      clearChat(contactId);
+                      deleteContact(contactId);
+                      setActiveContactId(contacts.find(c => c.id !== contactId)?.id || '');
                     }
                   }}
                   className="text-[9px] px-2 py-0.5 rounded border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 hover:text-rose-400 font-bold uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm"
-                  title="Clear chat history"
+                  title="Delete contact and all messages"
                 >
-                  <Trash2 className="h-3 w-3 text-rose-400" /> Clear Chat
+                  <Trash2 className="h-3 w-3 text-rose-400" /> Delete Contact
                 </button>
               </div>
             </div>
