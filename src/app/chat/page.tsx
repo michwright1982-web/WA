@@ -817,18 +817,6 @@ export default function ChatPage() {
                 className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
               />
               <button 
-                type="button"
-                onClick={() => {
-                  if (!typedMessage.trim()) return;
-                  triggerMockIncoming(activeContactId, typedMessage.trim(), false, 'text');
-                  setTypedMessage('');
-                }}
-                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl font-medium text-[10px] transition-colors flex items-center justify-center border border-indigo-500/30 whitespace-nowrap"
-                title="Test your workflow by simulating an incoming customer message"
-              >
-                Simulate Customer
-              </button>
-              <button 
                 type="submit"
                 className="h-10 w-10 bg-white text-black hover:bg-zinc-200 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md"
               >

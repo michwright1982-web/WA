@@ -344,11 +344,12 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   console.log('Automatically added new contact to CRM:', contact);
                 }
 
+                const msgType = item.type || 'text';
                 const newMsg: Message = {
                   id: item.id || `m-webhook-${Date.now()}`,
                   accountId: activeAccountId || 'acc-1',
                   contactId: contact.id,
-                  type: 'text',
+                  type: msgType,
                   body: item.body,
                   direction: 'INCOMING',
                   status: contact.id === activeContactId ? 'read' : 'delivered',
@@ -362,7 +363,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   // Trigger Flow Builder automation matching engine immediately for live message
                   if (contact.automationEnabled !== false) {
                     setTimeout(() => {
-                      triggerMockIncomingRef.current?.(contact.id, item.body, true);
+                      triggerMockIncomingRef.current?.(contact.id, item.body, true, msgType);
                     }, 500);
                   }
                 }
@@ -674,10 +675,6 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }, 800);
       setTimeout(() => {
         setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'read' } : m));
-        // Trigger auto reply if automation is enabled for this contact
-        if (targetContact && targetContact.automationEnabled !== false) {
-          triggerMockIncoming(message.contactId, message.body);
-        }
       }, 2000);
       return;
     }

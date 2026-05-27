@@ -93,6 +93,8 @@ export async function POST(request: Request) {
               phoneNumber: msg.from.startsWith('+') ? msg.from : `+${msg.from}`,
               senderName: contactInfo?.profile?.name || `WhatsApp User (+${msg.from})`,
               body: messageBody,
+              type: msg.type === 'interactive' || msg.type === 'button' ? 'button' : 
+                    msg.type === 'image' || msg.type === 'document' || msg.type === 'audio' || msg.type === 'voice' || msg.type === 'video' ? msg.type : 'text',
               timestamp: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString()
             };
 
