@@ -280,6 +280,22 @@ export async function sendWhatsAppMessage(
         parameters: msg.templateParams.map(p => ({ type: 'text', text: p }))
       }];
     }
+    if (msg.buttons && msg.buttons.length > 0) {
+      payload.template.components = payload.template.components || [];
+      msg.buttons.forEach((btn: string, index: number) => {
+        payload.template.components.push({
+          type: 'button',
+          sub_type: 'quick_reply',
+          index: index,
+          parameters: [
+            {
+              type: 'payload',
+              payload: btn
+            }
+          ]
+        });
+      });
+    }
   } else if (msg.type === 'button' && msg.buttons && msg.buttons.length > 0) {
     payload.type = 'interactive';
     payload.interactive = {
