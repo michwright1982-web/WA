@@ -317,9 +317,6 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (incoming.length > 0) {
           console.log('Syncing incoming webhook messages:', incoming);
 
-          // Collect messages that need automation processing
-          const messagesToAutomate: any[] = [];
-
           // Use React functional state updaters to guarantee freshest states and bypass stale closure bugs
           setContacts(prevContacts => {
             let currentContacts = [...prevContacts];
@@ -328,6 +325,29 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               let currentMessages = [...prevMessages];
 
               for (const item of incoming) {
+                // Check if this is a server-side automation response (outgoing)
+                if (item.direction === 'OUTGOING' && item.automationResponse) {
+                  const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
+                  const contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber);
+                  if (contact) {
+                    const outMsg: Message = {
+                      id: item.id || `m-server-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                      accountId: activeAccountId || 'acc-1',
+                      contactId: contact.id,
+                      type: item.type || 'text',
+                      body: item.body,
+                      direction: 'OUTGOING',
+                      status: 'sent',
+                      timestamp: item.timestamp || new Date().toISOString(),
+                      buttons: item.buttons
+                    };
+                    if (!currentMessages.some(m => m.id === outMsg.id)) {
+                      currentMessages.push(outMsg);
+                    }
+                  }
+                  continue;
+                }
+
                 const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
                 let contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber);
 
@@ -362,11 +382,6 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 // Prevent message duplicates safely
                 if (!currentMessages.some(m => m.id === newMsg.id)) {
                   currentMessages.push(newMsg);
-                  
-                  // Queue for automation if enabled
-                  if (contact.automationEnabled !== false) {
-                    messagesToAutomate.push({ contactId: contact.id, body: item.body, msgType });
-                  }
                 }
               }
 
@@ -375,15 +390,6 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             return currentContacts;
           });
-
-          // Trigger Flow Builder automation matching engine safely outside state updaters
-          if (messagesToAutomate.length > 0) {
-            setTimeout(() => {
-              messagesToAutomate.forEach(msg => {
-                triggerMockIncomingRef.current?.(msg.contactId, msg.body, true, msg.msgType);
-              });
-            }, 100);
-          }
 
           // Acknowledge and clear the server queue
           await fetch('/api/webhooks/incoming-queue', { method: 'DELETE' });
@@ -414,6 +420,36 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     contactsRef.current = contacts;
     workflowsRef.current = workflows;
   }, [contacts, workflows]);
+
+  // Sync active workflow + account + templates + contacts to server for server-side automation
+  useEffect(() => {
+    if (!hasLoaded) return;
+
+    const activeWorkflow = workflows.find(w => w.status === 'ACTIVE');
+    const activeAccount = accounts.find(a => a.id === activeAccountId);
+
+    // Debounce to avoid flooding the server during rapid edits (e.g., dragging nodes)
+    const handler = setTimeout(() => {
+      fetch('/api/automation/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow: activeWorkflow || null,
+          templates: templates,
+          account: activeAccount || null,
+          contacts: contacts
+        })
+      }).then(res => {
+        if (res.ok) {
+          console.log('[SyncToServer] Automation config synced successfully. Workflow:', activeWorkflow?.name || 'none');
+        }
+      }).catch(err => {
+        console.error('[SyncToServer] Failed to sync automation config:', err);
+      });
+    }, 1000);
+
+    return () => clearTimeout(handler);
+  }, [hasLoaded, workflows, templates, accounts, contacts, activeAccountId]);
 
   // Simulated & Live Auto-Reply Engine when outgoing or incoming changes
   const triggerMockIncoming = (
