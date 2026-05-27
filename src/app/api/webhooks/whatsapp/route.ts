@@ -137,8 +137,7 @@ export async function POST(request: Request) {
                 
                 const result = executeWorkflow(
                   config.workflow,
-                  messageBody,
-                  msgType as any,
+                  incomingMessage,
                   config.templates || []
                 );
 

@@ -44,16 +44,35 @@ export interface WorkflowExecutionResult {
   error?: string;
 }
 
+export interface IncomingMessageContext {
+  id?: string;
+  body: string;
+  type: string;
+  phoneNumber?: string;
+  senderName?: string;
+  timestamp?: string;
+}
+
+function interpolateVariables(text: string, msg: IncomingMessageContext): string {
+  if (!text) return text;
+  return text
+    .replace(/\{\{msg\.body\}\}/g, msg.body || '')
+    .replace(/\{\{msg\.senderName\}\}/g, msg.senderName || '')
+    .replace(/\{\{msg\.sender\}\}/g, msg.phoneNumber || '')
+    .replace(/\{\{msg\.timestamp\}\}/g, msg.timestamp || '');
+}
+
 /**
  * Execute a workflow against an incoming message, entirely server-side.
  * Returns the action to take (what message to send back).
  */
 export function executeWorkflow(
   workflow: ServerWorkflow,
-  messageBody: string,
-  messageType: 'text' | 'button' | 'image' | 'document' | 'voice',
+  incomingMsg: IncomingMessageContext,
   templates: any[]
 ): WorkflowExecutionResult {
+  const messageBody = incomingMsg.body;
+  const messageType = incomingMsg.type;
   if (!workflow || workflow.status !== 'ACTIVE') {
     return { triggered: false, error: 'No active workflow' };
   }
@@ -153,6 +172,8 @@ export function executeWorkflow(
 
   // Step 4: Build the response message based on the action node config
   const actionSubType = targetActionNode.data.config?.subType || 'send_text';
+  let rawMessageText = targetActionNode.data.config?.messageText || '';
+  let interpolatedMessageText = interpolateVariables(rawMessageText, incomingMsg);
   let responseMessage: WorkflowExecutionResult['responseMessage'];
 
   if (actionSubType === 'send_message') {
@@ -162,7 +183,7 @@ export function executeWorkflow(
     if (sendOption === 'template') {
       let bodyText = '';
       let buttons: string[] = ['Get Started', 'Contact Sales'];
-      const templateParam = targetActionNode.data.config?.messageText || 'Customer';
+      const templateParam = interpolatedMessageText || 'Customer';
       let templateName = 'welcome_onboarding';
       let templateLanguage = 'en_US';
 
@@ -180,14 +201,17 @@ export function executeWorkflow(
           if (tmpl.bodyText.includes('{{')) {
             const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
             if (matches) {
+              const paramsList = templateParam.split(',').map((s: string) => s.trim());
               matches.forEach((match: string, index: number) => {
-                if (index === 0) templateParams.push(templateParam);
-                else templateParams.push(`Value${index + 1}`);
+                templateParams.push(paramsList[index] || `Value${index + 1}`);
               });
             }
           }
           
-          bodyText = bodyText.replace('{{1}}', templateParam);
+          const paramsList = templateParam.split(',').map((s: string) => s.trim());
+          paramsList.forEach((val: string, idx: number) => {
+            bodyText = bodyText.replace(`{{${idx + 1}}}`, val);
+          });
           bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
         } else {
           bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
@@ -208,13 +232,13 @@ export function executeWorkflow(
       if (msgFormat === 'document') {
         responseMessage = {
           type: 'image',
-          body: targetActionNode.data.config?.messageText || 'Sending attached media...',
+          body: interpolatedMessageText || 'Sending attached media...',
           mediaUrl: targetActionNode.data.config?.mediaUrl || ''
         };
       } else {
         responseMessage = {
           type: 'text',
-          body: targetActionNode.data.config?.messageText || 'Hello! This is an automated response from WhatsFlow.'
+          body: interpolatedMessageText || 'Hello! This is an automated response from WhatsFlow.'
         };
       }
     }
@@ -224,13 +248,13 @@ export function executeWorkflow(
       : ['Onboarding', 'Documentation'];
     responseMessage = {
       type: 'button',
-      body: targetActionNode.data.config?.messageText || 'Please choose an option:',
+      body: interpolatedMessageText || 'Please choose an option:',
       buttons: buttonOptions
     };
   } else if (actionSubType === 'send_text') {
     responseMessage = {
       type: 'text',
-      body: targetActionNode.data.config?.messageText || 'Hello! This is an automated response.'
+      body: interpolatedMessageText || 'Hello! This is an automated response.'
     };
   } else if (actionSubType === 'ai_assistant') {
     responseMessage = {
@@ -241,7 +265,7 @@ export function executeWorkflow(
     // Default text response for unhandled subtypes
     responseMessage = {
       type: 'text',
-      body: targetActionNode.data.config?.messageText || 'Automated response from WhatsFlow.'
+      body: interpolatedMessageText || 'Automated response from WhatsFlow.'
     };
   }
 

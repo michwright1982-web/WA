@@ -1590,12 +1590,12 @@ export default function WorkflowsPage() {
                                     )}
 
                                     <div>
-                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Value ({"{{1}}"})</label>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Parameter Values (Comma-separated)</label>
                                       <input
                                         type="text"
                                         value={configMessageText}
                                         onChange={(e) => setConfigMessageText(e.target.value)}
-                                        placeholder="e.g. Client Name"
+                                        placeholder="e.g. John, VIP, 2026-10-10"
                                         className="w-full bg-zinc-950 border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none border"
                                       />
                                     </div>
