@@ -182,7 +182,8 @@ const SEED_MESSAGES: Message[] = [
   { id: 'm-1', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hello! Welcome to WhatsFlow. How can we help you today?', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:00:00Z' },
   { id: 'm-2', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Hi there! I am interested in connecting my WhatsApp API. Is it simple?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:02:00Z' },
   { id: 'm-3', accountId: 'acc-1', contactId: 'c-1', type: 'text', body: 'Yes, absolutely. You can set it up in under 5 minutes from our dashboard!', direction: 'OUTGOING', status: 'read', timestamp: '2026-05-26T08:03:00Z' },
-  { id: 'm-4', accountId: 'acc-1', contactId: 'c-2', type: 'text', body: 'Can we schedule a call for tomorrow?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:15:00Z' }
+  { id: 'm-4', accountId: 'acc-1', contactId: 'c-2', type: 'text', body: 'Can we schedule a call for tomorrow?', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:15:00Z' },
+  { id: 'm-5', accountId: 'acc-1', contactId: 'c-3', type: 'button', body: '📝 Filled Booking Form Response: {"name":"Marcus Johnson","email":"marcus.j@enterprise.com","services":"Custom Integration Suite","date":"2026-06-01","preferred_time":"14:00","notes":"Needs custom SSO setup and 24/7 SLA"}', direction: 'INCOMING', status: 'read', timestamp: '2026-05-26T08:20:00Z' }
 ];
 
 const SEED_TEMPLATES: Template[] = [

@@ -85,7 +85,8 @@ export async function POST(request: Request) {
               } else if (interactiveType === 'list_reply') {
                 messageBody = msg.interactive?.list_reply?.title || '';
               } else if (interactiveType === 'nfm_reply') {
-                messageBody = '📝 Filled Booking Form Response';
+                const responseJson = msg.interactive?.nfm_reply?.response_json || '{}';
+                messageBody = `📝 Filled Booking Form Response: ${responseJson}`;
               }
             } else if (msg.type === 'image') {
               messageBody = '🖼️ [Image Attachment]';

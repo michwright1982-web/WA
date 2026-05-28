@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard-shell';
-import { useWhatsFlow } from '@/lib/whatsflow-store';
+import { useWhatsFlow, Message } from '@/lib/whatsflow-store';
 import { 
   Send, 
   Search, 
@@ -96,6 +96,7 @@ export default function ChatPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typedMessage, setTypedMessage] = useState('');
+  const [selectedFlowResponse, setSelectedFlowResponse] = useState<Message | null>(null);
   const [showTmplSelect, setShowTmplSelect] = useState(false);
   const [showBtnModal, setShowBtnModal] = useState(false);
   const [btnText, setBtnText] = useState('');
@@ -659,10 +660,23 @@ export default function ChatPage() {
                       {msg.type !== 'document' && msg.type !== 'voice' && (
                         <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
                           {msg.type === 'button' && !isOutgoing ? (
-                            <span className="inline-flex items-center gap-1.5 text-indigo-650 font-bold">
-                              <span>🔘 Interactive Click:</span>
-                              <span className="text-indigo-600 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{msg.body}</span>
-                            </span>
+                            msg.body.includes('Filled Booking Form Response') ? (
+                              <button 
+                                type="button"
+                                onClick={() => setSelectedFlowResponse(msg)}
+                                className="w-full text-left inline-flex flex-col gap-1.5 p-2.5 rounded-xl bg-indigo-950/20 border border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-950/30 transition-all cursor-pointer shadow-inner"
+                              >
+                                <span className="inline-flex items-center gap-1.5 text-indigo-400 font-bold uppercase tracking-wider text-[9px]">
+                                  <span>📝 Filled Booking Form Response</span>
+                                </span>
+                                <span className="text-[9px] text-indigo-350/80 italic font-mono block">Click message to view form details</span>
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-indigo-650 font-bold">
+                                <span>🔘 Interactive Click:</span>
+                                <span className="text-indigo-600 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{msg.body}</span>
+                              </span>
+                            )
                           ) : msg.type === 'flow' ? (
                             <div className="flex flex-col gap-1.5">
                               <span className="inline-flex items-center gap-1.5 text-indigo-600 font-bold uppercase tracking-wide text-[9px]">
@@ -867,6 +881,80 @@ export default function ChatPage() {
         </div>
 
       </div>
+
+      {/* Synced Flow Form Submission Details Modal */}
+      {selectedFlowResponse && (() => {
+        // Parse JSON if available
+        let parsedData: Record<string, string> = {};
+        let rawJson = '';
+        try {
+          const bodyStr = selectedFlowResponse.body;
+          const jsonStartIdx = bodyStr.indexOf('{');
+          if (jsonStartIdx !== -1) {
+            rawJson = bodyStr.substring(jsonStartIdx);
+            parsedData = JSON.parse(rawJson);
+          }
+        } catch (e) {
+          console.error('Failed to parse form response JSON:', e);
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200 relative space-y-4">
+              <button 
+                onClick={() => setSelectedFlowResponse(null)}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-wider text-xs border-b border-zinc-850 pb-2.5">
+                <FileText className="h-4.5 w-4.5" />
+                WhatsApp Flow Form Details
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-[10px] text-zinc-500 leading-normal">
+                  This window parses and displays the native metadata fields submitted by the client via Meta Flows API.
+                </p>
+
+                <div className="bg-zinc-950 border border-zinc-850 rounded-xl overflow-hidden divide-y divide-zinc-900 shadow-inner">
+                  {Object.keys(parsedData).length > 0 ? (
+                    Object.entries(parsedData).map(([key, value]) => (
+                      <div key={key} className="flex justify-between items-center p-3 text-xs">
+                        <span className="font-bold text-zinc-550 capitalize font-mono text-[10px]">{key.replace('_', ' ')}</span>
+                        <span className="text-zinc-200 font-semibold">{String(value)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-xs text-zinc-550 italic text-center">
+                      No parsed parameter data found in flow response body.
+                    </div>
+                  )}
+                </div>
+
+                {rawJson && (
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Raw Submitted JSON</span>
+                    <pre className="w-full bg-zinc-950 border border-zinc-850 rounded-lg p-3 text-[10px] text-emerald-400 font-mono overflow-x-auto select-all max-h-36">
+                      {JSON.stringify(parsedData, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-zinc-800 flex justify-end">
+                <button 
+                  onClick={() => setSelectedFlowResponse(null)}
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                >
+                  Close Viewer
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </DashboardShell>
   );
 }
