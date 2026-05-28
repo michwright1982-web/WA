@@ -574,13 +574,13 @@ export default function ChatPage() {
                   <div key={`${msg.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3`}>
                     <div className={`max-w-[70%] p-3.5 shadow-md border transition-all duration-200 ${
                       isOutgoing 
-                        ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white border-emerald-500/20 rounded-2xl rounded-tr-none' 
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-100 rounded-2xl rounded-tl-none'
+                        ? 'bg-emerald-600 text-white border-emerald-500/30 rounded-2xl rounded-tr-none' 
+                        : 'bg-zinc-800 border-zinc-750 text-white rounded-2xl rounded-tl-none'
                     }`} >
                       
                       {/* Media image render */}
                       {msg.type === 'image' && msg.mediaUrl && (
-                        <div className="mb-2.5 rounded-lg overflow-hidden max-w-xs border border-zinc-800 shadow-sm">
+                        <div className="mb-2.5 rounded-lg overflow-hidden max-w-xs border border-zinc-700 shadow-sm">
                           <img src={msg.mediaUrl} alt="media preview" className="w-full h-auto object-cover" />
                         </div>
                       )}
@@ -589,16 +589,16 @@ export default function ChatPage() {
                       {msg.type === 'document' && (
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center justify-between gap-4 ${
                           isOutgoing 
-                            ? 'bg-emerald-700/40 border-emerald-500/30 text-white' 
-                            : 'bg-zinc-950 border-zinc-850 text-zinc-200'
+                            ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-100'
                         }`}>
                           <div className="flex items-center gap-2.5 truncate">
-                            <div className={`p-2 rounded-lg ${isOutgoing ? 'bg-white/10 text-emerald-200' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                            <div className={`p-2 rounded-lg ${isOutgoing ? 'bg-white/10 text-emerald-250' : 'bg-indigo-500/10 text-indigo-400'}`}>
                               <FileText className="h-5 w-5" />
                             </div>
                             <div className="truncate">
                               <span className="text-[11px] font-bold block truncate max-w-[150px]" title={msg.body}>{msg.body}</span>
-                              <span className={`text-[8px] block uppercase font-mono font-bold ${isOutgoing ? 'text-emerald-300' : 'text-zinc-500'}`}>PDF Document</span>
+                              <span className={`text-[8px] block uppercase font-mono font-bold ${isOutgoing ? 'text-emerald-300' : 'text-zinc-550'}`}>PDF Document</span>
                             </div>
                           </div>
                           <a
@@ -607,8 +607,8 @@ export default function ChatPage() {
                             rel="noreferrer"
                             className={`p-1.5 rounded-lg border transition-colors ${
                               isOutgoing 
-                                ? 'bg-white/10 hover:bg-white/20 border-white/15 text-white' 
-                                : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white'
+                                ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white' 
+                                : 'bg-zinc-850 hover:bg-zinc-750 border-zinc-700 text-zinc-400 hover:text-white'
                             }`}
                             title="Download File"
                           >
@@ -621,14 +621,14 @@ export default function ChatPage() {
                       {msg.type === 'voice' && (
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center gap-3 ${
                           isOutgoing 
-                            ? 'bg-emerald-700/40 border-emerald-500/30 text-white' 
-                            : 'bg-zinc-950 border-zinc-850 text-zinc-200'
+                            ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-100'
                         }`}>
                           <button
                             type="button"
                             className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${
                               isOutgoing
-                                ? 'bg-white text-emerald-800 hover:bg-emerald-50'
+                                ? 'bg-white text-emerald-850 hover:bg-emerald-50'
                                 : 'bg-indigo-650 hover:bg-indigo-550 text-white'
                             }`}
                             title="Play voice mail"
