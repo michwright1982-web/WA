@@ -106,7 +106,7 @@ const getNodeIcon = (subType: string, type: string) => {
 };
 
 export default function WorkflowsPage() {
-  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId } = useWhatsFlow();
+  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId, contacts } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState('');
 
   // Restore active workflow selection from localStorage
@@ -351,7 +351,7 @@ export default function WorkflowsPage() {
           const nodeIndex = nodes.findIndex(n => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = nodes[nodeIndex];
-            const destBranches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : node.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+            const destBranches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
             const isDestBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic' || node.data.config?.subType === 'label_check';
             const nodeHeight = isDestBranching ? (66 + (destBranches.length + 1) * 32) : 80;
 
@@ -796,10 +796,7 @@ export default function WorkflowsPage() {
         { id: 'case_2', keyword: 'support', label: 'Support Route' }
       ]);
     } else if (c.subType === 'label_check') {
-      setConfigBranches(c.branches || [
-        { id: 'label_new', keyword: 'new', label: 'If New' },
-        { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
-      ]);
+      setConfigBranches(c.branches || []);
     } else {
       setConfigBranches([]);
     }
@@ -1136,9 +1133,6 @@ export default function WorkflowsPage() {
                   ] : srcSubType === 'switch_logic' ? [
                     { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                     { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                  ] : srcSubType === 'label_check' ? [
-                    { id: 'label_new', keyword: 'new', label: 'If New' },
-                    { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                   ] : []);
                   const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                   
@@ -1161,7 +1155,7 @@ export default function WorkflowsPage() {
                   
                   // Calculate destination node height for vertical center
                   const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic' || destNode.data.config?.subType === 'label_check';
-                  const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : destNode.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+                  const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
                   const destHeight = isDestBranching 
                     ? (66 + (destBranches.length + 1) * 32) 
                     : 80;
@@ -1219,9 +1213,6 @@ export default function WorkflowsPage() {
                   ] : srcSubType === 'switch_logic' ? [
                     { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                     { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                  ] : srcSubType === 'label_check' ? [
-                    { id: 'label_new', keyword: 'new', label: 'If New' },
-                    { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                   ] : []);
                   const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                   
@@ -1268,9 +1259,6 @@ export default function WorkflowsPage() {
                 ] : srcSubType === 'switch_logic' ? [
                   { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                   { id: 'case_2', keyword: 'support', label: 'Support Route' }
-                ] : srcSubType === 'label_check' ? [
-                  { id: 'label_new', keyword: 'new', label: 'If New' },
-                  { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                 ] : []);
                 const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                 
@@ -1288,7 +1276,7 @@ export default function WorkflowsPage() {
                   y1 = srcNode.position.y + listTop + portIndex * (rowHeight + rowGap) + (rowHeight / 2);
                 }
 
-                const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : destNode.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+                const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
                 const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic' || destNode.data.config?.subType === 'label_check';
                 const destHeight = isDestBranching 
                   ? (66 + (destBranches.length + 1) * 32) 
@@ -1333,7 +1321,7 @@ export default function WorkflowsPage() {
                       : 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/80';
 
                 const isBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic' || node.data.config?.subType === 'label_check';
-                const branches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : node.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+                const branches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
                 const nodeHeight = isBranching 
                   ? (66 + (branches.length + 1) * 32) 
                   : 80;
@@ -1471,6 +1459,11 @@ export default function WorkflowsPage() {
                             Key: {node.data.config.keyword}
                           </div>
                         )}
+                        {node.data.config?.subType === 'change_label' && node.data.config?.newLabel && (
+                           <div className="mt-2 text-[9px] bg-indigo-950/40 border border-indigo-500/30 rounded px-1.5 py-0.5 inline-block text-indigo-400 font-bold font-mono">
+                             Assign: "{node.data.config.newLabel}"
+                           </div>
+                         )}
                       </>
                     )}
                   </div>
@@ -2123,19 +2116,42 @@ export default function WorkflowsPage() {
                           }
 
                           if (subType === 'change_label') {
+                            const allCrmLabels = Array.from(new Set(
+                              contacts
+                                ? contacts
+                                    .map(c => c.label)
+                                    .filter((l): l is string => typeof l === 'string' && l.trim() !== '')
+                                : []
+                            ));
+                            const optionsList = Array.from(new Set([
+                              ...allCrmLabels,
+                              configNewLabel || 'new'
+                            ]));
+
                             return (
-                              <div>
-                                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">New Assigned Label</label>
-                                <select
-                                  value={configNewLabel}
-                                  onChange={(e) => setConfigNewLabel(e.target.value)}
-                                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                >
-                                  <option value="new">new</option>
-                                  <option value="language selected">language selected</option>
-                                  <option value="flow filled">flow filled</option>
-                                </select>
-                                <p className="text-[8px] text-zinc-500 mt-1">Select the label to assign to the contact when this step executes.</p>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">New Assigned Label</label>
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={configNewLabel}
+                                      onChange={(e) => setConfigNewLabel(e.target.value)}
+                                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      {optionsList.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                      ))}
+                                    </select>
+                                    <input
+                                      type="text"
+                                      placeholder="Or type custom tag..."
+                                      value={configNewLabel}
+                                      onChange={(e) => setConfigNewLabel(e.target.value)}
+                                      className="w-[45%] bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                  </div>
+                                  <p className="text-[8px] text-zinc-500 mt-1">Select from dynamic CRM contact labels, or type a custom tag to assign.</p>
+                                </div>
                               </div>
                             );
                           }
@@ -2165,13 +2181,13 @@ export default function WorkflowsPage() {
                             );
                           }
 
-                          if (subType === 'if_else' || subType === 'switch_logic' || subType === 'label_check') {
+                          if (subType === 'if_else' || subType === 'switch_logic') {
                              return (
                                <div className="space-y-4">
                                  <div>
                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Condition Router Type</label>
                                    <select className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none">
-                                     <option>{subType === 'if_else' ? 'Boolean IF / ELSE Statement' : subType === 'label_check' ? '🏷️ CRM Label Multi-Branch Router' : 'Multi-Case Expression Matcher'}</option>
+                                     <option>{subType === 'if_else' ? 'Boolean IF / ELSE Statement' : 'Multi-Case Expression Matcher'}</option>
                                    </select>
                                  </div>
                                  
@@ -2185,7 +2201,7 @@ export default function WorkflowsPage() {
                                          const newBranchNum = configBranches.length + 1;
                                          setConfigBranches([
                                            ...configBranches,
-                                           { id: newBranchId, keyword: 'new', label: `If New` }
+                                           { id: newBranchId, keyword: `case${newBranchNum}`, label: `Case ${newBranchNum}` }
                                          ]);
                                        }}
                                        className="text-[8px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded cursor-pointer transition-colors"
@@ -2227,34 +2243,17 @@ export default function WorkflowsPage() {
                                              />
                                            </div>
                                            <div>
-                                             <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Target Label</label>
-                                             {subType === 'label_check' ? (
-                                               <select
-                                                 value={branch.keyword}
-                                                 onChange={(e) => {
-                                                   const val = e.target.value;
-                                                   setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val, label: val === 'unlabeled' ? 'If Unlabeled' : `If ${val}` } : b));
-                                                 }}
-                                                 className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none cursor-pointer"
-                                               >
-                                                 <option value="unlabeled">⛔ Not Labeled (Unlabeled)</option>
-                                                 <option value="new">new</option>
-                                                 <option value="language selected">language selected</option>
-                                                 <option value="flow filled">flow filled</option>
-                                                 <option value="qualified">qualified</option>
-                                               </select>
-                                             ) : (
-                                               <input
-                                                 type="text"
-                                                 value={branch.keyword}
-                                                 onChange={(e) => {
-                                                   const val = e.target.value;
-                                                   setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val } : b));
-                                                 }}
-                                                 placeholder="e.g. pricing, quote"
-                                                 className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
-                                               />
-                                             )}
+                                             <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Keyword Match</label>
+                                             <input
+                                               type="text"
+                                               value={branch.keyword}
+                                               onChange={(e) => {
+                                                 const val = e.target.value;
+                                                 setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val } : b));
+                                               }}
+                                               placeholder="e.g. pricing, quote"
+                                               className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
+                                             />
                                            </div>
                                          </div>
                                        </div>
@@ -2263,11 +2262,99 @@ export default function WorkflowsPage() {
                                  </div>
  
                                  <div className="bg-zinc-950/40 p-2 rounded border border-zinc-850 text-[8px] text-zinc-400 leading-normal">
-                                   💡 {subType === 'label_check' ? 'CRM Customer Label Routing: For each custom outcome case added, you get a green output connection handle on the canvas card node. The conversation routes dynamically to that port if the contact matches the tag. Unmatched route to Else.' : 'Dynamic Switch Branching: For each case outcome added above, you get a customized green output port on the canvas node card. Inbound customer messages matching the keyword dynamically route directly to that port. Unmatched messages route to the final red Else port.'}
+                                   💡 Dynamic Switch Branching: For each case outcome added above, you get a customized green output port on the canvas node card. Inbound customer messages matching the keyword dynamically route directly to that port. Unmatched messages route to the final red Else port.
                                  </div>
                                </div>
                              );
                            }
+
+                          if (subType === 'label_check') {
+                            // Extract unique dynamic labels from crm contacts
+                            const allCrmLabels = Array.from(new Set(
+                              contacts
+                                ? contacts
+                                    .map(c => c.label)
+                                    .filter((l): l is string => typeof l === 'string' && l.trim() !== '')
+                                : []
+                            ));
+
+                            return (
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select CRM Contact Labels to route</label>
+                                  <p className="text-[8px] text-zinc-500 mb-3">Only selected labels will appear as active green outcome branches on the canvas card node.</p>
+                                  
+                                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                    {/* Unlabeled option */}
+                                    {(() => {
+                                      const isChecked = configBranches.some(b => b.keyword === 'unlabeled');
+                                      return (
+                                        <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setConfigBranches([
+                                                  ...configBranches,
+                                                  { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
+                                                ]);
+                                              } else {
+                                                setConfigBranches(configBranches.filter(b => b.keyword !== 'unlabeled'));
+                                              }
+                                            }}
+                                            className="accent-indigo-500 cursor-pointer"
+                                          />
+                                          <div className="flex-1">
+                                            <span className="text-xs font-bold text-zinc-200 block">⛔ Not Labeled (Unlabeled Customer)</span>
+                                            <span className="text-[8px] text-zinc-500 block">Matches contacts with no assigned tags/labels</span>
+                                          </div>
+                                        </label>
+                                      );
+                                    })()}
+
+                                    {/* CRM dynamic labels */}
+                                    {allCrmLabels.map(label => {
+                                      const isChecked = configBranches.some(b => b.keyword === label);
+                                      return (
+                                        <label key={label} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setConfigBranches([
+                                                  ...configBranches,
+                                                  { id: `label_${label}`, keyword: label, label: `If ${label}` }
+                                                ]);
+                                              } else {
+                                                setConfigBranches(configBranches.filter(b => b.keyword !== label));
+                                              }
+                                            }}
+                                            className="accent-indigo-500 cursor-pointer"
+                                          />
+                                          <div className="flex-1">
+                                            <span className="text-xs font-bold text-zinc-200 block">{label}</span>
+                                            <span className="text-[8px] text-zinc-500 block">Matches contacts assigned to "{label}" tag</span>
+                                          </div>
+                                        </label>
+                                      );
+                                    })}
+                                    
+                                    {allCrmLabels.length === 0 && (
+                                      <div className="text-[10px] text-zinc-500 italic p-3 bg-zinc-950/50 rounded-xl border border-zinc-850 text-center">
+                                        No active CRM assigned labels found. Add labels to contacts in CRM tab to see them dynamically appear here.
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
+                                  💡 **Selected Assigned Labels**: Check labels above. Selected tags dynamically draw outcome ports. Conversation threads route automatically depending on the CRM contact's tag.
+                                </div>
+                              </div>
+                            );
+                          }
 
                           if (subType === 'data_filter') {
                             return (
