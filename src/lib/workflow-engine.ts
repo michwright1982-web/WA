@@ -59,6 +59,7 @@ export interface IncomingMessageContext {
   phoneNumber?: string;
   senderName?: string;
   timestamp?: string;
+  contactLabel?: string;
 }
 
 function interpolateVariables(text: string, msg: IncomingMessageContext): string {
@@ -163,6 +164,52 @@ export function executeWorkflow(
         } else {
           // Fallback
           const fallbackEdge = actionEdges.find((e: any) => e.port === 'else' || e.port === 'no' || !e.port);
+          if (fallbackEdge) {
+            const nextNode = workflow.nodes.find(n => n.id === fallbackEdge.target);
+            if (nextNode) currentNodes.push(nextNode);
+          }
+        }
+      } else if (subType === 'label_check') {
+        const branches = node.data.config?.branches || [];
+        const contactLabel = (incomingMsg.contactLabel || 'unlabeled').trim().toLowerCase();
+        const actionEdges = workflow.edges.filter(e => e.source === node.id);
+        
+        const matchedBranch = branches.find((b: any) => (b.keyword || '').trim().toLowerCase() === contactLabel);
+        let matchedBranchId = 'else';
+        if (matchedBranch) {
+          matchedBranchId = matchedBranch.id;
+        }
+
+        const matchingEdge = actionEdges.find((e: any) => e.port === matchedBranchId);
+        if (matchingEdge) {
+          const nextNode = workflow.nodes.find(n => n.id === matchingEdge.target);
+          if (nextNode) currentNodes.push(nextNode);
+        } else {
+          const fallbackEdge = actionEdges.find((e: any) => e.port === 'else' || !e.port);
+          if (fallbackEdge) {
+            const nextNode = workflow.nodes.find(n => n.id === fallbackEdge.target);
+            if (nextNode) currentNodes.push(nextNode);
+          }
+        }
+      } else if (subType === 'switch_logic') {
+        const branches = node.data.config?.branches || [];
+        const actionEdges = workflow.edges.filter(e => e.source === node.id);
+        let matchedBranchId = 'else';
+
+        for (const branch of branches) {
+          const kw = branch.keyword || '';
+          if (kw && (messageBody || '').toLowerCase().includes(kw.toLowerCase())) {
+            matchedBranchId = branch.id;
+            break;
+          }
+        }
+
+        const matchingEdge = actionEdges.find((e: any) => e.port === matchedBranchId);
+        if (matchingEdge) {
+          const nextNode = workflow.nodes.find(n => n.id === matchingEdge.target);
+          if (nextNode) currentNodes.push(nextNode);
+        } else {
+          const fallbackEdge = actionEdges.find((e: any) => e.port === 'else' || !e.port);
           if (fallbackEdge) {
             const nextNode = workflow.nodes.find(n => n.id === fallbackEdge.target);
             if (nextNode) currentNodes.push(nextNode);

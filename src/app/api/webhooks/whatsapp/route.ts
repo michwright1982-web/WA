@@ -138,7 +138,10 @@ export async function POST(request: Request) {
                 
                 const results = executeWorkflow(
                   config.workflow,
-                  incomingMessage,
+                  {
+                    ...incomingMessage,
+                    contactLabel: contact?.label || 'unlabeled'
+                  },
                   config.templates || []
                 );
 
