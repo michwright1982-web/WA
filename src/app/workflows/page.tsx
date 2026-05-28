@@ -351,8 +351,8 @@ export default function WorkflowsPage() {
           const nodeIndex = nodes.findIndex(n => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = nodes[nodeIndex];
-            const destBranches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
-            const isDestBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic';
+            const destBranches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : node.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+            const isDestBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic' || node.data.config?.subType === 'label_check';
             const nodeHeight = isDestBranching ? (66 + (destBranches.length + 1) * 32) : 80;
 
             nodes[nodeIndex] = {
@@ -795,6 +795,11 @@ export default function WorkflowsPage() {
         { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
         { id: 'case_2', keyword: 'support', label: 'Support Route' }
       ]);
+    } else if (c.subType === 'label_check') {
+      setConfigBranches(c.branches || [
+        { id: 'label_new', keyword: 'new', label: 'If New' },
+        { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
+      ]);
     } else {
       setConfigBranches([]);
     }
@@ -805,7 +810,7 @@ export default function WorkflowsPage() {
     
     const updatedNodes = activeWorkflow.nodes.map(n => {
       if (n.id === activeNodeId) {
-        const isBranching = n.data.config?.subType === 'if_else' || n.data.config?.subType === 'switch_logic';
+        const isBranching = n.data.config?.subType === 'if_else' || n.data.config?.subType === 'switch_logic' || n.data.config?.subType === 'label_check';
         return {
           ...n,
           data: {
@@ -1125,12 +1130,15 @@ export default function WorkflowsPage() {
                   
                   // Calculate source node height for vertical center
                   const srcSubType = srcNode.data.config?.subType || '';
-                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic' || srcSubType === 'label_check';
                   const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
                     { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
                   ] : srcSubType === 'switch_logic' ? [
                     { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                     { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                  ] : srcSubType === 'label_check' ? [
+                    { id: 'label_new', keyword: 'new', label: 'If New' },
+                    { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                   ] : []);
                   const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                   
@@ -1152,8 +1160,8 @@ export default function WorkflowsPage() {
                   }
                   
                   // Calculate destination node height for vertical center
-                  const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic';
-                  const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
+                  const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic' || destNode.data.config?.subType === 'label_check';
+                  const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : destNode.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
                   const destHeight = isDestBranching 
                     ? (66 + (destBranches.length + 1) * 32) 
                     : 80;
@@ -1205,12 +1213,15 @@ export default function WorkflowsPage() {
                   const x1 = srcNode.position.x + nodeWidth;
                   
                   const srcSubType = srcNode.data.config?.subType || '';
-                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                  const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic' || srcSubType === 'label_check';
                   const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
                     { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
                   ] : srcSubType === 'switch_logic' ? [
                     { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                     { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                  ] : srcSubType === 'label_check' ? [
+                    { id: 'label_new', keyword: 'new', label: 'If New' },
+                    { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                   ] : []);
                   const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                   
@@ -1251,12 +1262,15 @@ export default function WorkflowsPage() {
                 
                 const nodeWidth = 208;
                 const srcSubType = srcNode.data.config?.subType || '';
-                const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic';
+                const isSrcBranching = srcSubType === 'if_else' || srcSubType === 'switch_logic' || srcSubType === 'label_check';
                 const srcBranches = srcNode.data.config?.branches || (srcSubType === 'if_else' ? [
                   { id: 'yes', keyword: srcNode.data.config?.keyword || 'pricing', label: 'If Pricing' }
                 ] : srcSubType === 'switch_logic' ? [
                   { id: 'case_1', keyword: 'sales', label: 'Sales Route' },
                   { id: 'case_2', keyword: 'support', label: 'Support Route' }
+                ] : srcSubType === 'label_check' ? [
+                  { id: 'label_new', keyword: 'new', label: 'If New' },
+                  { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
                 ] : []);
                 const srcHeight = isSrcBranching ? (66 + (srcBranches.length + 1) * 32) : 80;
                 
@@ -1274,8 +1288,8 @@ export default function WorkflowsPage() {
                   y1 = srcNode.position.y + listTop + portIndex * (rowHeight + rowGap) + (rowHeight / 2);
                 }
 
-                const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
-                const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic';
+                const destBranches = destNode.data.config?.branches || (destNode.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: destNode.data.config?.keyword || 'pricing', label: 'If Pricing' }] : destNode.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : destNode.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
+                const isDestBranching = destNode.data.config?.subType === 'if_else' || destNode.data.config?.subType === 'switch_logic' || destNode.data.config?.subType === 'label_check';
                 const destHeight = isDestBranching 
                   ? (66 + (destBranches.length + 1) * 32) 
                   : 80;
@@ -1318,8 +1332,8 @@ export default function WorkflowsPage() {
                       ? 'border-sky-500/30 bg-sky-500/5 hover:border-sky-500/80' 
                       : 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/80';
 
-                const isBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic';
-                const branches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
+                const isBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic' || node.data.config?.subType === 'label_check';
+                const branches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : node.data.config?.subType === 'label_check' ? [{ id: 'label_new', keyword: 'new', label: 'If New' }, { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }] : []);
                 const nodeHeight = isBranching 
                   ? (66 + (branches.length + 1) * 32) 
                   : 80;
@@ -1828,24 +1842,6 @@ export default function WorkflowsPage() {
                           if (subType === 'label_check') {
                             return (
                               <div className="space-y-4">
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Identify Customer Label</label>
-                                  <select
-                                    value={configTargetLabel}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setConfigTargetLabel(val);
-                                      setConfigNodeLabel(val === 'unlabeled' ? 'Route Unlabeled Clients' : `Route Label: ${val}`);
-                                    }}
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
-                                  >
-                                    <option value="unlabeled">⛔ Not Labeled (Unlabeled Customer)</option>
-                                    <option value="new">new</option>
-                                    <option value="language selected">language selected</option>
-                                    <option value="flow filled">flow filled</option>
-                                    <option value="qualified">qualified</option>
-                                  </select>
-                                </div>
                                 <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
                                   💡 **Label Routing**: Matches the contact's CRM label. Useful for routing non-labeled customers to general support, or qualified ones directly to sales.
                                 </div>
@@ -2169,92 +2165,109 @@ export default function WorkflowsPage() {
                             );
                           }
 
-                          if (subType === 'if_else' || subType === 'switch_logic') {
-                            return (
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Condition Router Type</label>
-                                  <select className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none">
-                                    <option>{subType === 'if_else' ? 'Boolean IF / ELSE Statement' : 'Multi-Case Expression Matcher'}</option>
-                                  </select>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold flex justify-between items-center">
-                                    <span>Outcome Branches / Router cases</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newBranchId = `branch-${Date.now()}`;
-                                        const newBranchNum = configBranches.length + 1;
-                                        setConfigBranches([
-                                          ...configBranches,
-                                          { id: newBranchId, keyword: `case${newBranchNum}`, label: `Case ${newBranchNum}` }
-                                        ]);
-                                      }}
-                                      className="text-[8px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded cursor-pointer transition-colors"
-                                    >
-                                      + Add Outcome Case
-                                    </button>
-                                  </label>
-                                  
-                                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                                    {configBranches.map((branch, index) => (
-                                      <div key={branch.id} className="bg-zinc-950/80 p-2.5 rounded-lg border border-zinc-850 space-y-2">
-                                        <div className="flex items-center justify-between gap-2">
-                                          <span className="text-[8px] font-mono text-zinc-500 uppercase font-bold">Case Branch #{index + 1}</span>
-                                          {configBranches.length > 1 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setConfigBranches(configBranches.filter(b => b.id !== branch.id));
-                                              }}
-                                              className="text-[8px] text-red-400 hover:text-red-300 font-semibold cursor-pointer"
-                                              title="Remove branch"
-                                            >
-                                              Remove
-                                            </button>
-                                          )}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div>
-                                            <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Port Label</label>
-                                            <input
-                                              type="text"
-                                              value={branch.label}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, label: val } : b));
-                                              }}
-                                              placeholder="e.g. Sales"
-                                              className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Keyword Match</label>
-                                            <input
-                                              type="text"
-                                              value={branch.keyword}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val } : b));
-                                              }}
-                                              placeholder="e.g. pricing, quote"
-                                              className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="bg-zinc-950/40 p-2 rounded border border-zinc-850 text-[8px] text-zinc-400 leading-normal">
-                                  💡 **Dynamic Switch Branching**: For each case outcome added above, you get a customized green output port on the canvas node card. Inbound customer messages matching the keyword dynamically route directly to that port. Unmatched messages route to the final red **Else** port.
-                                </div>
-                              </div>
-                            );
-                          }
+                          if (subType === 'if_else' || subType === 'switch_logic' || subType === 'label_check') {
+                             return (
+                               <div className="space-y-4">
+                                 <div>
+                                   <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Condition Router Type</label>
+                                   <select className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none">
+                                     <option>{subType === 'if_else' ? 'Boolean IF / ELSE Statement' : subType === 'label_check' ? '🏷️ CRM Label Multi-Branch Router' : 'Multi-Case Expression Matcher'}</option>
+                                   </select>
+                                 </div>
+                                 
+                                 <div className="space-y-2">
+                                   <label className="text-[9px] text-zinc-500 uppercase font-bold flex justify-between items-center">
+                                     <span>Outcome Branches / Router cases</span>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         const newBranchId = `branch-${Date.now()}`;
+                                         const newBranchNum = configBranches.length + 1;
+                                         setConfigBranches([
+                                           ...configBranches,
+                                           { id: newBranchId, keyword: 'new', label: `If New` }
+                                         ]);
+                                       }}
+                                       className="text-[8px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded cursor-pointer transition-colors"
+                                     >
+                                       + Add Outcome Case
+                                     </button>
+                                   </label>
+                                   
+                                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                     {configBranches.map((branch, index) => (
+                                       <div key={branch.id} className="bg-zinc-950/80 p-2.5 rounded-lg border border-zinc-855 space-y-2">
+                                         <div className="flex items-center justify-between gap-2">
+                                           <span className="text-[8px] font-mono text-zinc-500 uppercase font-bold">Case Branch #{index + 1}</span>
+                                           {configBranches.length > 1 && (
+                                             <button
+                                               type="button"
+                                               onClick={() => {
+                                                 setConfigBranches(configBranches.filter(b => b.id !== branch.id));
+                                               }}
+                                               className="text-[8px] text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+                                               title="Remove branch"
+                                             >
+                                               Remove
+                                             </button>
+                                           )}
+                                         </div>
+                                         <div className="grid grid-cols-2 gap-2">
+                                           <div>
+                                             <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Port Label</label>
+                                             <input
+                                               type="text"
+                                               value={branch.label}
+                                               onChange={(e) => {
+                                                 const val = e.target.value;
+                                                 setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, label: val } : b));
+                                               }}
+                                               placeholder="e.g. Sales"
+                                               className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
+                                             />
+                                           </div>
+                                           <div>
+                                             <label className="text-[8px] text-zinc-500 uppercase block mb-0.5">Target Label</label>
+                                             {subType === 'label_check' ? (
+                                               <select
+                                                 value={branch.keyword}
+                                                 onChange={(e) => {
+                                                   const val = e.target.value;
+                                                   setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val, label: val === 'unlabeled' ? 'If Unlabeled' : `If ${val}` } : b));
+                                                 }}
+                                                 className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none cursor-pointer"
+                                               >
+                                                 <option value="unlabeled">⛔ Not Labeled (Unlabeled)</option>
+                                                 <option value="new">new</option>
+                                                 <option value="language selected">language selected</option>
+                                                 <option value="flow filled">flow filled</option>
+                                                 <option value="qualified">qualified</option>
+                                               </select>
+                                             ) : (
+                                               <input
+                                                 type="text"
+                                                 value={branch.keyword}
+                                                 onChange={(e) => {
+                                                   const val = e.target.value;
+                                                   setConfigBranches(configBranches.map(b => b.id === branch.id ? { ...b, keyword: val } : b));
+                                                 }}
+                                                 placeholder="e.g. pricing, quote"
+                                                 className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none"
+                                               />
+                                             )}
+                                           </div>
+                                         </div>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 </div>
+ 
+                                 <div className="bg-zinc-950/40 p-2 rounded border border-zinc-850 text-[8px] text-zinc-400 leading-normal">
+                                   💡 {subType === 'label_check' ? 'CRM Customer Label Routing: For each custom outcome case added, you get a green output connection handle on the canvas card node. The conversation routes dynamically to that port if the contact matches the tag. Unmatched route to Else.' : 'Dynamic Switch Branching: For each case outcome added above, you get a customized green output port on the canvas node card. Inbound customer messages matching the keyword dynamically route directly to that port. Unmatched messages route to the final red Else port.'}
+                                 </div>
+                               </div>
+                             );
+                           }
 
                           if (subType === 'data_filter') {
                             return (
