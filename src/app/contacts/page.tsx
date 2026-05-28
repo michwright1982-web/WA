@@ -25,7 +25,7 @@ export default function ContactsPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [labelInput, setLabelInput] = useState<'new' | 'language selected' | 'flow filled' | ''>('');
+  const [labelInput, setLabelInput] = useState<string>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
   const filtered = contacts.filter(c => 
@@ -262,16 +262,13 @@ export default function ContactsPage() {
 
                 <div>
                   <label className="text-xs text-zinc-400 block mb-1">Assigned Label</label>
-                  <select
+                  <input
+                    type="text"
+                    placeholder="e.g. VIP Customer"
                     value={labelInput}
-                    onChange={(e) => setLabelInput(e.target.value as any)}
-                    className="w-full bg-zinc-950 border border-zinc-850 rounded p-2 text-xs text-white focus:outline-none"
-                  >
-                    <option value="">No Label</option>
-                    <option value="new">new</option>
-                    <option value="language selected">language selected</option>
-                    <option value="flow filled">flow filled</option>
-                  </select>
+                    onChange={(e) => setLabelInput(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs text-white focus:outline-none"
+                  />
                 </div>
 
                 <div>

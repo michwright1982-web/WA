@@ -666,6 +666,7 @@ export default function ChatPage() {
                           {isMounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                         {isOutgoing && (
+                          msg.status === 'failed' ? <span className="text-rose-500 font-bold ml-1">Error sending message</span> :
                           msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5]" /> : <Check className="h-3 w-3" />
                         )}
                       </div>

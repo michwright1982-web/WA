@@ -639,6 +639,21 @@ export default function WorkflowsPage() {
   const handleCopyNode = (node: FlowNode) => {
     if (!activeWorkflow) return;
     
+    const baseLabelMatch = node.data.label.match(/^(.*?)(?:\s\d+)?$/);
+    const baseLabel = baseLabelMatch ? baseLabelMatch[1].trim() : node.data.label;
+
+    let maxNum = 0;
+    const escapedBaseLabel = baseLabel.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+    activeWorkflow.nodes.forEach(n => {
+      const match = n.data.label.match(new RegExp(`^${escapedBaseLabel}(?:\\s(\\d+))?$`));
+      if (match) {
+        const num = match[1] ? parseInt(match[1], 10) : 1;
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    
+    const newLabel = `${baseLabel} ${maxNum + 1}`;
+
     const copiedNode: FlowNode = {
       id: `node-${Date.now()}`,
       type: node.type,
@@ -648,7 +663,7 @@ export default function WorkflowsPage() {
       },
       data: {
         ...node.data,
-        label: `${node.data.label} (Copy)`,
+        label: newLabel,
         config: {
           ...node.data.config
         }

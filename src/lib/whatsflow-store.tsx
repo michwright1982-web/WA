@@ -29,7 +29,7 @@ export interface Contact {
   name: string;
   phoneNumber: string;
   email?: string;
-  label?: 'new' | 'language selected' | 'flow filled';
+  label?: string;
   status: 'active' | 'inactive';
   automationEnabled?: boolean;
   leadStatus?: 'qualified' | 'not_qualified' | 'new';
@@ -546,8 +546,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Flag message as failed in the UI to notify the user
       setMessages(prev => prev.map(m => m.id === message.id ? { 
         ...m, 
-        status: 'failed', 
-        body: `${m.body}\n⚠️ (Delivery Failed: ${err.message || 'Check credentials / recipient number'})` 
+        status: 'failed'
       } : m));
     }
   };
