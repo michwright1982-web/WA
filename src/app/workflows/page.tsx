@@ -701,6 +701,7 @@ export default function WorkflowsPage() {
   // Node active status
   const [configIsDisabled, setConfigIsDisabled] = useState(false);
   const [configTargetLabel, setConfigTargetLabel] = useState('new');
+  const [customLabelInput, setCustomLabelInput] = useState('');
 
   const [isSyncingFlows, setIsSyncingFlows] = useState(false);
   const activeAccount = accounts?.find(a => a.id === activeAccountId);
@@ -2269,92 +2270,129 @@ export default function WorkflowsPage() {
                            }
 
                           if (subType === 'label_check') {
-                            // Extract unique dynamic labels from crm contacts
-                            const allCrmLabels = Array.from(new Set(
-                              contacts
-                                ? contacts
-                                    .map(c => c.label)
-                                    .filter((l): l is string => typeof l === 'string' && l.trim() !== '')
-                                : []
-                            ));
+                             // Extract unique dynamic labels from crm contacts
+                             const allCrmLabels = Array.from(new Set(
+                               contacts
+                                 ? contacts
+                                     .map(c => c.label)
+                                     .filter((l): l is string => typeof l === 'string' && l.trim() !== '')
+                                 : []
+                             ));
 
-                            return (
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select CRM Contact Labels to route</label>
-                                  <p className="text-[8px] text-zinc-500 mb-3">Only selected labels will appear as active green outcome branches on the canvas card node.</p>
-                                  
-                                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                                    {/* Unlabeled option */}
-                                    {(() => {
-                                      const isChecked = configBranches.some(b => b.keyword === 'unlabeled');
-                                      return (
-                                        <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
-                                          <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={(e) => {
-                                              if (e.target.checked) {
-                                                setConfigBranches([
-                                                  ...configBranches,
-                                                  { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
-                                                ]);
-                                              } else {
-                                                setConfigBranches(configBranches.filter(b => b.keyword !== 'unlabeled'));
-                                              }
-                                            }}
-                                            className="accent-indigo-500 cursor-pointer"
-                                          />
-                                          <div className="flex-1">
-                                            <span className="text-xs font-bold text-zinc-200 block">⛔ Not Labeled (Unlabeled Customer)</span>
-                                            <span className="text-[8px] text-zinc-500 block">Matches contacts with no assigned tags/labels</span>
-                                          </div>
-                                        </label>
-                                      );
-                                    })()}
+                             // Combine contacts labels with any keywords currently in the branches
+                             const combinedLabels = Array.from(new Set([
+                               ...allCrmLabels,
+                               ...configBranches
+                                 .map(b => b.keyword)
+                                 .filter(kw => kw !== 'unlabeled')
+                             ]));
 
-                                    {/* CRM dynamic labels */}
-                                    {allCrmLabels.map(label => {
-                                      const isChecked = configBranches.some(b => b.keyword === label);
-                                      return (
-                                        <label key={label} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
-                                          <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={(e) => {
-                                              if (e.target.checked) {
-                                                setConfigBranches([
-                                                  ...configBranches,
-                                                  { id: `label_${label}`, keyword: label, label: `If ${label}` }
-                                                ]);
-                                              } else {
-                                                setConfigBranches(configBranches.filter(b => b.keyword !== label));
-                                              }
-                                            }}
-                                            className="accent-indigo-500 cursor-pointer"
-                                          />
-                                          <div className="flex-1">
-                                            <span className="text-xs font-bold text-zinc-200 block">{label}</span>
-                                            <span className="text-[8px] text-zinc-500 block">Matches contacts assigned to "{label}" tag</span>
-                                          </div>
-                                        </label>
-                                      );
-                                    })}
-                                    
-                                    {allCrmLabels.length === 0 && (
-                                      <div className="text-[10px] text-zinc-500 italic p-3 bg-zinc-950/50 rounded-xl border border-zinc-850 text-center">
-                                        No active CRM assigned labels found. Add labels to contacts in CRM tab to see them dynamically appear here.
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
+                             return (
+                               <div className="space-y-4">
+                                 <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
+                                   💡 **Label Routing**: Choose which labels to route from CRM contacts. Checked labels dynamically create output ports on the canvas node card.
+                                 </div>
 
-                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
-                                  💡 **Selected Assigned Labels**: Check labels above. Selected tags dynamically draw outcome ports. Conversation threads route automatically depending on the CRM contact's tag.
-                                </div>
-                              </div>
-                            );
-                          }
+                                 <div>
+                                   <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Add Custom Routing Label</label>
+                                   <div className="flex gap-2">
+                                     <input
+                                       type="text"
+                                       placeholder="Type new label name..."
+                                       value={customLabelInput}
+                                       onChange={(e) => setCustomLabelInput(e.target.value)}
+                                       className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                     />
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         const trimmed = customLabelInput.trim();
+                                         if (trimmed && !configBranches.some(b => b.keyword === trimmed)) {
+                                           setConfigBranches([
+                                             ...configBranches,
+                                             { id: `label_${trimmed}`, keyword: trimmed, label: `If ${trimmed}` }
+                                           ]);
+                                           setCustomLabelInput('');
+                                         }
+                                       }}
+                                       className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3.5 rounded-lg transition-colors cursor-pointer select-none"
+                                     >
+                                       Add
+                                     </button>
+                                   </div>
+                                 </div>
+
+                                 <div>
+                                   <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select CRM Contact Labels to route</label>
+                                   <p className="text-[8px] text-zinc-500 mb-3">Check the boxes to enable ports for these CRM contact labels in the workflow.</p>
+                                   
+                                   <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                     {/* Unlabeled option */}
+                                     {(() => {
+                                       const isChecked = configBranches.some(b => b.keyword === 'unlabeled');
+                                       return (
+                                         <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
+                                           <input
+                                             type="checkbox"
+                                             checked={isChecked}
+                                             onChange={(e) => {
+                                               if (e.target.checked) {
+                                                 setConfigBranches([
+                                                   ...configBranches,
+                                                   { id: 'label_unlabeled', keyword: 'unlabeled', label: 'If Unlabeled' }
+                                                 ]);
+                                               } else {
+                                                 setConfigBranches(configBranches.filter(b => b.keyword !== 'unlabeled'));
+                                               }
+                                             }}
+                                             className="accent-indigo-500 cursor-pointer"
+                                           />
+                                           <div className="flex-1">
+                                             <span className="text-xs font-bold text-zinc-200 block">⛔ Not Labeled (Unlabeled Customer)</span>
+                                             <span className="text-[8px] text-zinc-500 block">Matches contacts with no assigned tags/labels</span>
+                                           </div>
+                                         </label>
+                                       );
+                                     })()}
+
+                                     {/* CRM dynamic + Custom added labels */}
+                                     {combinedLabels.map(label => {
+                                       const isChecked = configBranches.some(b => b.keyword === label);
+                                       return (
+                                         <label key={label} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-zinc-950 border-zinc-850 hover:bg-zinc-900/60'}`}>
+                                           <input
+                                             type="checkbox"
+                                             checked={isChecked}
+                                             onChange={(e) => {
+                                               if (e.target.checked) {
+                                                 setConfigBranches([
+                                                   ...configBranches,
+                                                   { id: `label_${label}`, keyword: label, label: `If ${label}` }
+                                                 ]);
+                                               } else {
+                                                 setConfigBranches(configBranches.filter(b => b.keyword !== label));
+                                               }
+                                             }}
+                                             className="accent-indigo-500 cursor-pointer"
+                                           />
+                                           <div className="flex-1">
+                                             <span className="text-xs font-bold text-zinc-200 block">{label}</span>
+                                             <span className="text-[8px] text-zinc-500 block">Matches contacts assigned to "{label}" tag</span>
+                                           </div>
+                                         </label>
+                                       );
+                                     })}
+                                     
+                                     {combinedLabels.length === 0 && (
+                                       <div className="text-[10px] text-zinc-500 italic p-3 bg-zinc-950/50 rounded-xl border border-zinc-850 text-center">
+                                         No dynamic CRM labels or custom labels found. Type a label above to add and route custom labels in the workflow.
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                           }
 
                           if (subType === 'data_filter') {
                             return (
