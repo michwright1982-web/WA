@@ -29,7 +29,8 @@ import {
   Check,
   Search,
   Download,
-  Upload
+  Upload,
+  Edit2
 } from 'lucide-react';
 
 // WhatsApp Business API Actions Node Library Registry
@@ -100,7 +101,7 @@ const getNodeIcon = (subType: string, type: string) => {
 };
 
 export default function WorkflowsPage() {
-  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, addWorkflow } = useWhatsFlow();
+  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, addWorkflow, deleteWorkflow, renameWorkflow } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState('');
 
   // Restore active workflow selection from localStorage
@@ -260,6 +261,117 @@ export default function WorkflowsPage() {
     e.target.value = '';
   };
 
+  const handleRearrange = () => {
+    if (!activeWorkflow) return;
+    const nodes = [...activeWorkflow.nodes];
+    const edges = activeWorkflow.edges;
+
+    // Adjacency list and in-degrees
+    const inDegree = new Map<string, number>();
+    const adj = new Map<string, string[]>();
+    nodes.forEach(n => {
+      inDegree.set(n.id, 0);
+      if (!adj.has(n.id)) adj.set(n.id, []);
+    });
+
+    // Sort edges so branches appear in correct order (top-to-bottom)
+    const sortedEdges = [...edges].sort((a, b) => {
+      // Sort by source ID first
+      if (a.source !== b.source) return a.source.localeCompare(b.source);
+      
+      // If the source node has a specific branches array, respect that order
+      const sourceNode = nodes.find(n => n.id === a.source);
+      if (sourceNode && sourceNode.data.config?.branches) {
+        const branches = sourceNode.data.config.branches;
+        const indexA = branches.findIndex((br: any) => br.id === a.port);
+        const indexB = branches.findIndex((br: any) => br.id === b.port);
+        const finalIndexA = indexA === -1 ? 999 : indexA;
+        const finalIndexB = indexB === -1 ? 999 : indexB;
+        if (finalIndexA !== finalIndexB) return finalIndexA - finalIndexB;
+      }
+
+      // Fallback sorts
+      const portA = a.port || '';
+      const portB = b.port || '';
+      if (portA === 'yes' && portB === 'no') return -1;
+      if (portA === 'no' && portB === 'yes') return 1;
+      return portA.localeCompare(portB);
+    });
+
+    sortedEdges.forEach(e => {
+      if (!adj.has(e.source)) adj.set(e.source, []);
+      adj.get(e.source)!.push(e.target);
+      if (inDegree.has(e.target)) {
+        inDegree.set(e.target, inDegree.get(e.target)! + 1);
+      }
+    });
+
+    const roots = nodes.filter(n => inDegree.get(n.id) === 0);
+    // Sort roots to be deterministic, e.g. triggers first
+    roots.sort((a, b) => a.type === 'triggerNode' ? -1 : 1);
+
+    let currentGlobalY = 60; // Initial top padding
+    const NODE_WIDTH = 280;
+    const X_GAP = 55;
+    const Y_GAP = 35;
+
+    const visited = new Set<string>();
+
+    for (const root of roots) {
+      if (visited.has(root.id)) continue;
+
+      const queue = [{ id: root.id, level: 0 }];
+      const levelNodes = new Map<number, string[]>();
+
+      while (queue.length > 0) {
+        const { id, level } = queue.shift()!;
+        if (visited.has(id)) continue;
+        visited.add(id);
+
+        if (!levelNodes.has(level)) levelNodes.set(level, []);
+        levelNodes.get(level)!.push(id);
+
+        const children = adj.get(id) || [];
+        for (const child of children) {
+          if (!visited.has(child)) {
+            queue.push({ id: child, level: level + 1 });
+          }
+        }
+      }
+
+      let maxSubGraphHeight = 0;
+
+      levelNodes.forEach((nodeIds, level) => {
+        nodeIds.forEach((nodeId, index) => {
+          const nodeIndex = nodes.findIndex(n => n.id === nodeId);
+          if (nodeIndex !== -1) {
+            const node = nodes[nodeIndex];
+            const destBranches = node.data.config?.branches || (node.data.config?.subType === 'if_else' ? [{ id: 'yes', keyword: node.data.config?.keyword || 'pricing', label: 'If Pricing' }] : node.data.config?.subType === 'switch_logic' ? [{ id: 'case_1', keyword: 'sales', label: 'Sales Route' }, { id: 'case_2', keyword: 'support', label: 'Support Route' }] : []);
+            const isDestBranching = node.data.config?.subType === 'if_else' || node.data.config?.subType === 'switch_logic';
+            const nodeHeight = isDestBranching ? (66 + (destBranches.length + 1) * 32) : 80;
+
+            nodes[nodeIndex] = {
+              ...node,
+              position: {
+                x: 60 + level * (NODE_WIDTH + X_GAP),
+                y: currentGlobalY + index * (150 + Y_GAP)
+              }
+            };
+            if (index * (150 + Y_GAP) + nodeHeight > maxSubGraphHeight) {
+              maxSubGraphHeight = index * (150 + Y_GAP) + nodeHeight;
+            }
+          }
+        });
+      });
+
+      currentGlobalY += maxSubGraphHeight + 100; // Gap between independent workflows
+    }
+
+    updateWorkflow(activeWorkflow.id, nodes, edges);
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
   // Drag and drop states
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -276,11 +388,35 @@ export default function WorkflowsPage() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, currentX: number, currentY: number } | null>(null);
 
-  const stateRef = useRef({ zoom, panOffset, activeNodeId });
   useEffect(() => {
-    stateRef.current = { zoom, panOffset, activeNodeId };
-  }, [zoom, panOffset, activeNodeId]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.code === 'Space' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        setIsSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const stateRef = useRef({ zoom, panOffset, activeNodeId, isSpacePressed });
+  useEffect(() => {
+    stateRef.current = { zoom, panOffset, activeNodeId, isSpacePressed };
+  }, [zoom, panOffset, activeNodeId, isSpacePressed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -292,12 +428,12 @@ export default function WorkflowsPage() {
         return;
       }
 
-      const { zoom: currentZoom, panOffset: currentPan, activeNodeId: currentActiveNodeId } = stateRef.current;
+      const { zoom: currentZoom, panOffset: currentPan, activeNodeId: currentActiveNodeId, isSpacePressed: currentSpacePressed } = stateRef.current;
       if (currentActiveNodeId) return; // Block when popup is open
 
       e.preventDefault(); // This is the crucial part to prevent page scrolling/zooming!
 
-      if (e.ctrlKey || e.metaKey) {
+      if (e.ctrlKey || e.metaKey || currentSpacePressed) {
         // Pinch to zoom (trackpad) or Cmd/Ctrl + Scroll
         const zoomSensitivity = 0.01;
         let newZoom = currentZoom - e.deltaY * zoomSensitivity;
@@ -333,6 +469,12 @@ export default function WorkflowsPage() {
     
     e.preventDefault();
     setDraggedNodeId(node.id);
+    
+    // If we click a node that is not in the current selection, make it the only selection
+    if (!selectedNodeIds.includes(node.id)) {
+      setSelectedNodeIds([node.id]);
+    }
+
     setHasMovedDuringDrag(false); // Reset drag state!
     const canvas = document.getElementById('flow-canvas');
     if (canvas) {
@@ -369,7 +511,31 @@ export default function WorkflowsPage() {
     if (!canvas) return;
     const canvasRect = canvas.getBoundingClientRect();
 
-    if (draggedNodeId && activeWorkflow) {
+    if (selectionBox) {
+      const localMouseX = (e.clientX - canvasRect.left - panOffset.x) / zoom;
+      const localMouseY = (e.clientY - canvasRect.top - panOffset.y) / zoom;
+      setSelectionBox({ ...selectionBox, currentX: localMouseX, currentY: localMouseY });
+      
+      if (activeWorkflow) {
+        const minX = Math.min(selectionBox.startX, localMouseX);
+        const maxX = Math.max(selectionBox.startX, localMouseX);
+        const minY = Math.min(selectionBox.startY, localMouseY);
+        const maxY = Math.max(selectionBox.startY, localMouseY);
+        
+        const intersectingIds = activeWorkflow.nodes.filter(n => {
+          const nodeWidth = 208; // width w-52
+          const nodeHeight = 80; // approx height
+          return (
+            n.position.x < maxX &&
+            n.position.x + nodeWidth > minX &&
+            n.position.y < maxY &&
+            n.position.y + nodeHeight > minY
+          );
+        }).map(n => n.id);
+        
+        setSelectedNodeIds(intersectingIds);
+      }
+    } else if (draggedNodeId && activeWorkflow) {
       setHasMovedDuringDrag(true); // Actual drag-movement is happening!
       const localMouseX = (e.clientX - canvasRect.left - panOffset.x) / zoom;
       const localMouseY = (e.clientY - canvasRect.top - panOffset.y) / zoom;
@@ -380,17 +546,30 @@ export default function WorkflowsPage() {
       newX = Math.max(10, Math.min(4800, newX));
       newY = Math.max(10, Math.min(4800, newY));
 
-      const updatedNodes = activeWorkflow.nodes.map(n => {
-        if (n.id === draggedNodeId) {
-          return {
-            ...n,
-            position: { x: newX, y: newY }
-          };
-        }
-        return n;
-      });
+      const draggedNode = activeWorkflow.nodes.find(n => n.id === draggedNodeId);
+      if (draggedNode) {
+        const deltaX = newX - draggedNode.position.x;
+        const deltaY = newY - draggedNode.position.y;
+        
+        const isGroupDrag = selectedNodeIds.includes(draggedNodeId) && selectedNodeIds.length > 1;
 
-      updateWorkflow(activeWorkflow.id, updatedNodes, activeWorkflow.edges);
+        const updatedNodes = activeWorkflow.nodes.map(n => {
+          if (isGroupDrag && selectedNodeIds.includes(n.id)) {
+            return {
+              ...n,
+              position: { x: n.position.x + deltaX, y: n.position.y + deltaY }
+            };
+          } else if (n.id === draggedNodeId) {
+            return {
+              ...n,
+              position: { x: newX, y: newY }
+            };
+          }
+          return n;
+        });
+
+        updateWorkflow(activeWorkflow.id, updatedNodes, activeWorkflow.edges);
+      }
     } else if (connectingSourceId) {
       const localMouseX = (e.clientX - canvasRect.left - panOffset.x) / zoom;
       const localMouseY = (e.clientY - canvasRect.top - panOffset.y) / zoom;
@@ -411,20 +590,52 @@ export default function WorkflowsPage() {
     setConnectingSourceId(null);
     setConnectingMousePos(null);
     setIsPanning(false);
+    
+    if (selectionBox) {
+      if (selectedNodeIds.length === 1 && !hasMovedDuringDrag) {
+        const node = activeWorkflow?.nodes.find(n => n.id === selectedNodeIds[0]);
+        if (node) handleSelectNode(node);
+      } else if (selectedNodeIds.length === 0) {
+        setSelectedNodeIds([]);
+      }
+      setSelectionBox(null);
+    }
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (activeNodeId) return; // Block canvas panning when popup is open
+    if (activeNodeId) {
+      setActiveNodeId(null);
+    }
     if (e.button !== 0) return;
     // Don't pan if we clicked on a card, button, or port dot
     if ((e.target as HTMLElement).closest('.group') || (e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.connect-handle')) {
       return;
     }
-    setIsPanning(true);
-    setPanStart({
-      x: e.clientX - panOffset.x,
-      y: e.clientY - panOffset.y
-    });
+    
+    if (isSpacePressed) {
+      setIsPanning(true);
+      setPanStart({
+        x: e.clientX - panOffset.x,
+        y: e.clientY - panOffset.y
+      });
+    } else {
+      // Start drag box selection
+      const canvas = document.getElementById('flow-canvas');
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const localMouseX = (e.clientX - canvasRect.left - panOffset.x) / zoom;
+        const localMouseY = (e.clientY - canvasRect.top - panOffset.y) / zoom;
+        setSelectionBox({
+          startX: localMouseX,
+          startY: localMouseY,
+          currentX: localMouseX,
+          currentY: localMouseY
+        });
+        if (!e.shiftKey) {
+          setSelectedNodeIds([]); // Clear previous selection unless shift is held
+        }
+      }
+    }
   };
 
   const handleNodeMouseUp = (e: React.MouseEvent, targetId: string) => {
@@ -481,6 +692,9 @@ export default function WorkflowsPage() {
   // Unified send message config state
   const [configSendOption, setConfigSendOption] = useState<'message' | 'template'>('message');
   const [configMessageFormat, setConfigMessageFormat] = useState<'text' | 'document'>('text');
+  
+  // Node active status
+  const [configIsDisabled, setConfigIsDisabled] = useState(false);
 
   const handleSelectNode = (node: FlowNode) => {
     setActiveNodeId(node.id);
@@ -512,6 +726,7 @@ export default function WorkflowsPage() {
     setConfigNewLabel(c.newLabel || 'new');
     setConfigSendOption(c.sendOption || 'message');
     setConfigMessageFormat(c.messageFormat || 'text');
+    setConfigIsDisabled(c.isDisabled || false);
 
     // Bind dynamic branches for If-Else / Switch nodes
     if (c.subType === 'if_else') {
@@ -563,6 +778,7 @@ export default function WorkflowsPage() {
               newLabel: configNewLabel,
               sendOption: configSendOption,
               messageFormat: configMessageFormat,
+              isDisabled: configIsDisabled,
               branches: isBranching ? configBranches : undefined
             }
           }
@@ -692,16 +908,30 @@ export default function WorkflowsPage() {
             <div className="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-300">
               <GitFork className="h-5 w-5" />
             </div>
-            <div>
-              <select
-                value={selectedFlowId}
-                onChange={(e) => setSelectedFlowId(e.target.value)}
-                className="bg-transparent text-sm font-semibold text-zinc-100 focus:outline-none cursor-pointer"
-              >
-                {workflows.map(w => (
-                  <option key={w.id} value={w.id} className="bg-zinc-900">{w.name}</option>
-                ))}
-              </select>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedFlowId}
+                  onChange={(e) => setSelectedFlowId(e.target.value)}
+                  className="bg-transparent text-sm font-semibold text-zinc-100 focus:outline-none cursor-pointer"
+                >
+                  {workflows.map(w => (
+                    <option key={w.id} value={w.id} className="bg-zinc-900">{w.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    const newName = prompt('Enter new workflow name:', activeWorkflow?.name);
+                    if (newName && newName.trim() !== '') {
+                      renameWorkflow(activeWorkflow.id, newName.trim());
+                    }
+                  }}
+                  className="p-1 text-zinc-500 hover:text-indigo-400 transition-colors"
+                  title="Rename Workflow"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
               <p className="text-[10px] text-zinc-500 mt-0.5">Drag nodes to position, click to edit properties</p>
             </div>
           </div>
@@ -741,13 +971,24 @@ export default function WorkflowsPage() {
                 </>
               )}
             </button>
-
+            
             <button
-              onClick={() => handleAddNode('action', 'send_text', 'Send Text Message', 'Meta WhatsApp Text API endpoint')}
-              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 font-bold transition-all shadow-md"
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this workflow? This cannot be undone.')) {
+                  deleteWorkflow(activeWorkflow.id);
+                  if (workflows.length > 1) {
+                    const nextFlow = workflows.find(w => w.id !== activeWorkflow.id);
+                    if (nextFlow) setSelectedFlowId(nextFlow.id);
+                  }
+                }
+              }}
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold transition-all cursor-pointer ml-1"
+              title="Delete this workflow"
             >
-              <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> Add Step
+              <Trash2 className="h-3.5 w-3.5 fill-current" /> Delete
             </button>
+
+
           </div>
         </div>
 
@@ -762,7 +1003,7 @@ export default function WorkflowsPage() {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className="flex-1 border border-zinc-800 rounded-2xl bg-zinc-950/60 relative overflow-hidden bg-grid-pattern shadow-inner flex flex-col justify-between cursor-grab active:cursor-grabbing"
+            className={`flex-1 border border-zinc-800 rounded-2xl bg-zinc-950/60 relative overflow-hidden bg-grid-pattern shadow-inner flex flex-col justify-between ${isSpacePressed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
           >
             
             {/* Legend / Info widget overlay */}
@@ -788,6 +1029,23 @@ export default function WorkflowsPage() {
               }}
               className="absolute top-0 left-0 select-none"
             >
+
+            {/* Selection Box overlay */}
+            {selectionBox && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: Math.min(selectionBox.startX, selectionBox.currentX),
+                  top: Math.min(selectionBox.startY, selectionBox.currentY),
+                  width: Math.abs(selectionBox.currentX - selectionBox.startX),
+                  height: Math.abs(selectionBox.currentY - selectionBox.startY),
+                  border: '1px dashed #6366f1',
+                  backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                  pointerEvents: 'none',
+                  zIndex: 50
+                }}
+              />
+            )}
 
             {/* Custom Interactive SVG Connections Canvas */}
             <div className="absolute inset-0 pointer-events-none">
@@ -992,7 +1250,7 @@ export default function WorkflowsPage() {
               })}
 
               {activeWorkflow?.nodes.map((node) => {
-                const isSelected = node.id === activeNodeId;
+                const isSelected = node.id === activeNodeId || selectedNodeIds.includes(node.id);
                 const nodeColors = 
                   node.type === 'triggerNode' 
                     ? 'border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/80' 
@@ -1022,8 +1280,8 @@ export default function WorkflowsPage() {
                       minHeight: isBranching ? `${nodeHeight}px` : undefined 
                     }}
                     className={`group absolute w-52 rounded-xl p-3 border cursor-grab active:cursor-grabbing select-none shadow-[0_4px_20px_rgba(0,0,0,0.6)] ${nodeColors} ${
-                     isSelected ? 'ring-2 ring-indigo-500 scale-[1.03] border-glow' : ''
-                    } transition-[border-color,background-color,box-shadow,transform] duration-200`}
+                     isSelected ? 'ring-2 ring-offset-2 ring-offset-zinc-950 ring-indigo-400 !border-indigo-400 scale-[1.03] shadow-[0_0_20px_rgba(99,102,241,0.5)] z-40' : 'z-20'
+                    } ${node.data.config?.isDisabled ? 'opacity-50 grayscale' : ''} transition-[border-color,background-color,box-shadow,transform,opacity,filter] duration-200`}
                   >
                     {/* Left Hand Side Input Port Handle Dot — centered vertically */}
                     <div 
@@ -1043,8 +1301,11 @@ export default function WorkflowsPage() {
                     )}
 
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
                         {node.type.replace('Node', '')}
+                        {node.data.config?.isDisabled && (
+                          <span className="bg-red-950/80 text-red-400 px-1.5 py-0.5 rounded text-[8px] leading-none border border-red-900/50">Disabled</span>
+                        )}
                       </span>
                       <div className={`flex items-center gap-1 z-25 transition-opacity duration-150 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <button
@@ -1144,9 +1405,14 @@ export default function WorkflowsPage() {
               >
                 Reset View
               </button>
-              <div className="text-[8px] text-zinc-500 max-w-[90px] border-l border-zinc-800 pl-2 leading-none">
-                Drag empty canvas to Pan
-              </div>
+              <button
+                onClick={handleRearrange}
+                className="text-[9px] font-bold px-2.5 py-1 bg-zinc-800 hover:bg-indigo-600 hover:text-white text-zinc-400 rounded-lg transition-colors cursor-pointer select-none h-7 flex items-center"
+                title="Auto-arrange nodes neatly"
+              >
+                Rearrange
+              </button>
+
             </div>
 
             {/* Right-to-Left Sliding WhatsApp API Actions Drawer (Confined to Canvas) */}
@@ -1415,6 +1681,22 @@ export default function WorkflowsPage() {
                       {/* Right Column: Node Settings form fields */}
                       <div className="flex-1 p-5 overflow-y-auto min-h-0 space-y-3.5">
                         
+                        <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
+                          <div>
+                            <div className="text-[10px] font-bold text-zinc-300">Node Status</div>
+                            <div className="text-[8px] text-zinc-500">Deactivate to skip this step</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer" 
+                              checked={!configIsDisabled}
+                              onChange={(e) => setConfigIsDisabled(!e.target.checked)}
+                            />
+                            <div className="w-7 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                          </label>
+                        </div>
+
                         <div>
                           <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Step Label</label>
                           <input

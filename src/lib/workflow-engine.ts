@@ -113,7 +113,9 @@ export function executeWorkflow(
     visited.add(node.id);
 
     if (node.type === 'actionNode') {
-      targetActionNodes.push(node);
+      if (!node.data.config?.isDisabled) {
+        targetActionNodes.push(node);
+      }
       
       const nextEdges = workflow.edges.filter(e => e.source === node.id);
       for (const edge of nextEdges) {
@@ -127,6 +129,15 @@ export function executeWorkflow(
         if (nextNode) currentNodes.push(nextNode);
       }
     } else if (node.type === 'conditionNode') {
+      if (node.data.config?.isDisabled) {
+        // Pass through to all connected branches
+        const actionEdges = workflow.edges.filter(e => e.source === node.id);
+        for (const edge of actionEdges) {
+          const nextNode = workflow.nodes.find(n => n.id === edge.target);
+          if (nextNode) currentNodes.push(nextNode);
+        }
+        continue;
+      }
       const keyword = node.data.config?.keyword;
       const subType = node.data.config?.subType || '';
 

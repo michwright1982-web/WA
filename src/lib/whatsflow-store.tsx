@@ -114,6 +114,8 @@ interface WhatsFlowContextType {
   deleteTemplate: (id: string) => void;
   addWorkflow: (workflow: Omit<Workflow, 'id' | 'createdAt'>) => Workflow;
   updateWorkflow: (id: string, nodes: FlowNode[], edges: FlowEdge[]) => void;
+  deleteWorkflow: (id: string) => void;
+  renameWorkflow: (id: string, name: string) => void;
   toggleWorkflowStatus: (id: string) => void;
 
   addInteraction: (contactId: string, interaction: Omit<Interaction, 'id' | 'createdAt'>) => void;
@@ -705,6 +707,22 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const deleteWorkflow = (id: string) => {
+    setWorkflows(prev => {
+      const next = prev.filter(w => w.id !== id);
+      localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const renameWorkflow = (id: string, name: string) => {
+    setWorkflows(prev => {
+      const next = prev.map(w => w.id === id ? { ...w, name } : w);
+      localStorage.setItem('whatsflow_workflows', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const toggleWorkflowStatus = (id: string) => {
     setWorkflows(prev => {
       const targetWorkflow = prev.find(w => w.id === id);
@@ -777,6 +795,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       deleteTemplate,
       addWorkflow,
       updateWorkflow,
+      deleteWorkflow,
+      renameWorkflow,
       toggleWorkflowStatus,
 
       addInteraction,
