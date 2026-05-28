@@ -1833,16 +1833,6 @@ export default function WorkflowsPage() {
 
                         {/* Subtype-specific dynamic configuration fields based on WhatsApp API Action type */}
                         {(() => {
-                          if (subType === 'label_check') {
-                            return (
-                              <div className="space-y-4">
-                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
-                                  💡 **Label Routing**: Matches the contact's CRM label. Useful for routing non-labeled customers to general support, or qualified ones directly to sales.
-                                </div>
-                              </div>
-                            );
-                          }
-
                           if (subType === 'incoming_text' || subType === 'keyword_check') {
                             return (
                               <div>
