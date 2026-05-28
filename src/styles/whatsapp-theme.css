@@ -1,0 +1,72 @@
+/* src/styles/whatsapp-theme.css */
+:root {
+  /* Primary accent – WhatsApp green */
+  --color-primary: #25d366;
+  --color-primary-dark: #128c7e;
+  /* Light theme background – WhatsApp chat gray */
+  --color-bg: #e5ddd5;
+  --color-text: #303030;
+  /* Message bubble colors */
+  --color-bubble-in: #dcf8c6;
+  /* incoming (from contact) */
+  --color-bubble-out: #ffffff;
+  /* outgoing (user) */
+  /* Sidebar / header backgrounds */
+  --color-sidebar-bg: #f0f0f0;
+  --color-header-bg: #ffffff;
+  /* Font stack similar to WhatsApp Web */
+  --font-family-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Dark mode – optional, triggered by .dark class on html */
+.dark {
+  --color-primary: #128c7e;
+  --color-bg: #262d31;
+  --color-text: #e0e0e0;
+  --color-bubble-in: #2a4732;
+  --color-bubble-out: #3e4b53;
+  --color-sidebar-bg: #1e272b;
+  --color-header-bg: #212c33;
+}
+
+/* Apply global font */
+body {
+  font-family: var(--font-family-base);
+}
+
+/* Sidebar and header background overrides – using existing class selectors */
+.bg-zinc-950 {
+  background-color: var(--color-bg) !important;
+}
+
+.text-zinc-50 {
+  color: var(--color-text) !important;
+}
+
+/* Message bubble classes – can be added to message containers */
+.message-bubble.incoming {
+  background-color: var(--color-bubble-in);
+  color: var(--color-text);
+  border-radius: 7.5px 7.5px 7.5px 0;
+}
+
+.message-bubble.outgoing {
+  background-color: var(--color-bubble-out);
+  color: var(--color-text);
+  border-radius: 7.5px 7.5px 0 7.5px;
+}
+
+/* Primary action button (send, toggle, etc.) */
+.bg-\[var\(--color-primary\)\] {
+  background-color: var(--color-primary) !important;
+}
+
+.hover\:bg-\[var\(--color-primary-dark\)\]:hover {
+  background-color: var(--color-primary-dark) !important;
+}
+
+/* Adjust link focus/selection colors if needed */
+::selection {
+  background: var(--color-primary);
+  color: #fff;
+}

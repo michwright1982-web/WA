@@ -208,7 +208,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string>('');
   const [activeContactId, setActiveContactId] = useState<string>('');
-  const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
 
   const [hasLoaded, setHasLoaded] = useState(false);
 

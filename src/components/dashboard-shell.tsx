@@ -39,10 +39,10 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
   ];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 bg-grid-pattern text-zinc-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg)] bg-grid-pattern text-[var(--color-text)]">
       
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-zinc-800 bg-zinc-900/60 backdrop-blur-md flex flex-col justify-between">
+      <aside className="w-64 border-r border-zinc-800 bg-[var(--color-sidebar-bg)] backdrop-blur-md flex flex-col justify-between">
         <div>
           {/* Logo Brand */}
           <div className="h-16 flex items-center px-6 border-b border-zinc-800/80">
@@ -149,7 +149,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
       {/* Main Panel Frame */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header bar */}
-        <header className="h-16 border-b border-zinc-800 bg-zinc-900/30 backdrop-blur-md px-8 flex items-center justify-between">
+        <header className="h-16 border-b border-zinc-800 bg-[var(--color-header-bg)] backdrop-blur-md px-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-sm font-semibold text-zinc-400 capitalize">
               {pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
@@ -163,8 +163,8 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
           <div className="flex items-center gap-4">
             {/* Quick action buttons */}
             <div className="hidden sm:flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-              <span className="text-[11px] px-2.5 py-1 text-zinc-400 font-medium">Meta Status:</span>
-              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2 py-0.5 rounded-md font-semibold flex items-center gap-1.5">
+              <span className="text-[11px] px-2.5 py-1 text-[var(--color-text)] font-medium">Meta Status:</span>
+              <span className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20 text-[10px] px-2 py-0.5 rounded-md font-semibold flex items-center gap-1.5">
                 <Activity className="h-3 w-3" /> Live
               </span>
             </div>

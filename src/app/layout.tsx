@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/styles/whatsapp-theme.css";
 import { WhatsFlowProvider } from "@/lib/whatsflow-store";
 
 export const metadata: Metadata = {
@@ -19,7 +20,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="h-full bg-zinc-950 text-zinc-50 antialiased selection:bg-zinc-800 selection:text-white">
+      <body className="h-full bg-[var(--color-bg)] text-[var(--color-text)] antialiased selection:bg-zinc-800 selection:text-white">
         <WhatsFlowProvider>
           {children}
         </WhatsFlowProvider>

@@ -552,11 +552,7 @@ export default function ChatPage() {
                 const isOutgoing = msg.direction === 'OUTGOING';
                 return (
                   <div key={`${msg.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] rounded-xl p-3.5 shadow-sm border ${
-                      isOutgoing 
-                        ? 'bg-white text-black border-zinc-200' 
-                        : 'bg-zinc-900 text-zinc-100 border-zinc-800/80'
-                    }`}>
+                    <div className={`max-w-[70%] rounded-xl p-3.5 shadow-sm border ${isOutgoing ? 'message-bubble outgoing' : 'message-bubble incoming'}`} >
                       
                       {/* Media image render */}
                       {msg.type === 'image' && msg.mediaUrl && (
