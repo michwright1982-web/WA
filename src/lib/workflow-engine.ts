@@ -33,6 +33,11 @@ export interface WorkflowExecutionResult {
   actionNodeId?: string;
   actionType?: string;
   actionValue?: string;
+  aiModel?: string;
+  aiApiKey?: string;
+  prompt?: string;
+  aiMemoryEnabled?: boolean;
+  aiMessageLimit?: string;
   responseMessage?: {
     type: 'text' | 'template' | 'button' | 'image' | 'document' | 'flow';
     body: string;
@@ -360,6 +365,11 @@ export function executeWorkflow(
       triggerNodeId: triggerNode.id,
       actionNodeId: targetActionNode.id,
       actionType: actionSubType,
+      aiModel: targetActionNode.data.config?.aiModel,
+      aiApiKey: targetActionNode.data.config?.aiApiKey,
+      prompt: targetActionNode.data.config?.prompt,
+      aiMemoryEnabled: targetActionNode.data.config?.aiMemoryEnabled,
+      aiMessageLimit: targetActionNode.data.config?.aiMessageLimit,
       responseMessage
     };
   });

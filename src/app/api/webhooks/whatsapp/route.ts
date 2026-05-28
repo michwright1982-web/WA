@@ -164,6 +164,107 @@ export async function POST(request: Request) {
                       };
                       addToQueue(sysActionForUI);
                     } else if (result.responseMessage) {
+                      // Perform live AI API invocation if subtype is ai_assistant
+                      if (result.actionType === 'ai_assistant') {
+                        let aiReplyText = '';
+                        const apiKey = result.aiApiKey || process.env.OPENAI_API_KEY;
+                        const model = result.aiModel || 'gpt-5-mini';
+                        const systemPrompt = result.prompt || 'You are a helpful support assistant.';
+                        const userMessage = incomingMessage.body;
+
+                        if (apiKey && apiKey.trim() !== '' && !apiKey.startsWith('sk-••••')) {
+                          try {
+                            console.log(`[ServerAutomation] Requesting live AI response from OpenAI model: ${model}...`);
+                            
+                            let messagesForMemory: any[] = [];
+                            if (result.aiMemoryEnabled) {
+                              const limit = parseInt(result.aiMessageLimit || '10');
+                              let queue: any[] = [];
+                              if (fs.existsSync(queuePath)) {
+                                const data = fs.readFileSync(queuePath, 'utf8');
+                                if (data) queue = JSON.parse(data);
+                              }
+                              const contactMessages = queue
+                                .filter((m: any) => m.phoneNumber === incomingMessage.phoneNumber)
+                                .slice(-limit);
+                                
+                              messagesForMemory = contactMessages.map((m: any) => ({
+                                role: m.direction === 'INCOMING' ? 'user' : 'assistant',
+                                content: m.body
+                              }));
+                            }
+
+                            const apiEndpoint = model.includes('gemini') 
+                              ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+                              : model.includes('claude')
+                                ? `https://api.anthropic.com/v1/messages`
+                                : `https://api.openai.com/v1/chat/completions`;
+
+                            let response;
+                            if (model.includes('gemini')) {
+                              response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  contents: [
+                                    { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser Message: ${userMessage}` }] }
+                                  ]
+                                })
+                              });
+                              const data = await response.json();
+                              aiReplyText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                            } else if (model.includes('claude')) {
+                              response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                  'x-api-key': apiKey,
+                                  'anthropic-version': '2023-06-01',
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  model: model,
+                                  max_tokens: 1024,
+                                  system: systemPrompt,
+                                  messages: [
+                                    { role: 'user', content: userMessage }
+                                  ]
+                                })
+                              });
+                              const data = await response.json();
+                              aiReplyText = data.content?.[0]?.text || '';
+                            } else {
+                              const openAiModelName = model === 'gpt-5-mini' ? 'gpt-4o-mini' : model;
+                              const chatMessages = [
+                                { role: 'system', content: systemPrompt },
+                                ...messagesForMemory,
+                                { role: 'user', content: userMessage }
+                              ];
+
+                              response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${apiKey}`,
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  model: openAiModelName,
+                                  messages: chatMessages
+                                })
+                              });
+                              const data = await response.json();
+                              aiReplyText = data.choices?.[0]?.message?.content || '';
+                            }
+
+                            if (aiReplyText) {
+                              console.log('[ServerAutomation] Received dynamic AI reply:', aiReplyText);
+                              result.responseMessage.body = aiReplyText;
+                            }
+                          } catch (apiErr) {
+                            console.error('[ServerAutomation] OpenAI completion request error:', apiErr);
+                          }
+                        }
+                      }
+
                       if (!isMock) {
                         const sendResult = await sendWhatsAppMessage(
                           acc.phoneNumberId,
