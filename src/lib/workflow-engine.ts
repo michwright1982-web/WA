@@ -78,11 +78,11 @@ export function executeWorkflow(
   workflow: ServerWorkflow,
   incomingMsg: IncomingMessageContext,
   templates: any[]
-): WorkflowExecutionResult {
+): WorkflowExecutionResult[] {
   const messageBody = incomingMsg.body;
   const messageType = incomingMsg.type;
   if (!workflow || workflow.status !== 'ACTIVE') {
-    return { triggered: false, error: 'No active workflow' };
+    return [{ triggered: false, error: 'No active workflow' }];
   }
 
   console.log('[WorkflowEngine] Executing workflow:', workflow.name, 'for message:', messageBody, 'type:', messageType);
@@ -97,28 +97,44 @@ export function executeWorkflow(
   ) || workflow.nodes.find(n => n.type === 'triggerNode') || workflow.nodes[0];
 
   if (!triggerNode) {
-    return { triggered: false, error: 'No trigger node found' };
+    return [{ triggered: false, error: 'No trigger node found' }];
   }
 
   console.log('[WorkflowEngine] Matched trigger node:', triggerNode.id, triggerNode.data.label, 'expectedSubType:', expectedSubType);
 
-  // Step 2: Follow edges from trigger to find the action/condition node
-  let targetActionNode: ServerFlowNode | null = null;
-  const outgoingEdges = workflow.edges.filter(e => e.source === triggerNode.id);
+  // Step 2: Traverse graph to find all action nodes
+  const targetActionNodes: ServerFlowNode[] = [];
+  const currentNodes: ServerFlowNode[] = [triggerNode];
+  const visited = new Set<string>();
 
-  for (const edge of outgoingEdges) {
-    const nextNode = workflow.nodes.find(n => n.id === edge.target);
-    if (!nextNode) continue;
+  while (currentNodes.length > 0) {
+    const node = currentNodes.shift()!;
+    if (visited.has(node.id)) continue;
+    visited.add(node.id);
 
-    if (nextNode.type === 'conditionNode') {
-      const keyword = nextNode.data.config?.keyword;
-      const subType = nextNode.data.config?.subType || '';
+    if (node.type === 'actionNode') {
+      targetActionNodes.push(node);
+      
+      const nextEdges = workflow.edges.filter(e => e.source === node.id);
+      for (const edge of nextEdges) {
+        const nextNode = workflow.nodes.find(n => n.id === edge.target);
+        if (nextNode) currentNodes.push(nextNode);
+      }
+    } else if (node.type === 'triggerNode') {
+      const nextEdges = workflow.edges.filter(e => e.source === node.id);
+      for (const edge of nextEdges) {
+        const nextNode = workflow.nodes.find(n => n.id === edge.target);
+        if (nextNode) currentNodes.push(nextNode);
+      }
+    } else if (node.type === 'conditionNode') {
+      const keyword = node.data.config?.keyword;
+      const subType = node.data.config?.subType || '';
 
       if (subType === 'if_else') {
-        const branches = nextNode.data.config?.branches || [
+        const branches = node.data.config?.branches || [
           { id: 'yes', keyword: keyword || '', label: 'If Yes' }
         ];
-        const actionEdges = workflow.edges.filter(e => e.source === nextNode.id);
+        const actionEdges = workflow.edges.filter(e => e.source === node.id);
         let matchedBranchId = 'else';
 
         for (const branch of branches) {
@@ -129,183 +145,168 @@ export function executeWorkflow(
           }
         }
 
-        console.log('[WorkflowEngine] If/Else matched branch:', matchedBranchId);
-
         const matchingEdge = actionEdges.find((e: any) => e.port === matchedBranchId);
         if (matchingEdge) {
-          const actNode = workflow.nodes.find(n => n.id === matchingEdge.target);
-          if (actNode) targetActionNode = actNode;
+          const nextNode = workflow.nodes.find(n => n.id === matchingEdge.target);
+          if (nextNode) currentNodes.push(nextNode);
         } else {
           // Fallback
           const fallbackEdge = actionEdges.find((e: any) => e.port === 'else' || e.port === 'no' || !e.port);
           if (fallbackEdge) {
-            const actNode = workflow.nodes.find(n => n.id === fallbackEdge.target);
-            if (actNode) targetActionNode = actNode;
+            const nextNode = workflow.nodes.find(n => n.id === fallbackEdge.target);
+            if (nextNode) currentNodes.push(nextNode);
           }
         }
       } else {
         // Standard keyword match
         if (keyword && (messageBody || '').toLowerCase().includes(keyword.toLowerCase())) {
-          const actionEdges = workflow.edges.filter(e => e.source === nextNode.id);
+          const actionEdges = workflow.edges.filter(e => e.source === node.id);
           for (const actionEdge of actionEdges) {
-            const actNode = workflow.nodes.find(n => n.id === actionEdge.target && n.type === 'actionNode');
-            if (actNode) {
-              targetActionNode = actNode;
-              break;
-            }
+            const nextNode = workflow.nodes.find(n => n.id === actionEdge.target);
+            if (nextNode) currentNodes.push(nextNode);
           }
         }
       }
-    } else if (nextNode.type === 'actionNode') {
-      if (!targetActionNode) {
-        targetActionNode = nextNode;
-      }
-    }
-
-    if (targetActionNode && nextNode.type === 'conditionNode') {
-      break;
     }
   }
 
   // Step 3: Absolute fallback — first action node
-  if (!targetActionNode) {
-    targetActionNode = workflow.nodes.find(n => n.type === 'actionNode') || null;
+  if (targetActionNodes.length === 0) {
+    const fallbackNode = workflow.nodes.find(n => n.type === 'actionNode');
+    if (fallbackNode) targetActionNodes.push(fallbackNode);
   }
 
-  if (!targetActionNode) {
-    return { triggered: true, triggerNodeId: triggerNode.id, error: 'No action node found' };
+  if (targetActionNodes.length === 0) {
+    return [{ triggered: true, triggerNodeId: triggerNode.id, error: 'No action node found' }];
   }
 
-  console.log('[WorkflowEngine] Resolved action node:', targetActionNode.id, targetActionNode.data.label);
+  const results: WorkflowExecutionResult[] = targetActionNodes.map(targetActionNode => {
+    const actionSubType = targetActionNode.data.config?.subType || 'send_text';
+    let rawMessageText = targetActionNode.data.config?.messageText || '';
+    let interpolatedMessageText = interpolateVariables(rawMessageText, incomingMsg);
+    let responseMessage: WorkflowExecutionResult['responseMessage'];
 
-  // Step 4: Build the response message based on the action node config
-  const actionSubType = targetActionNode.data.config?.subType || 'send_text';
-  let rawMessageText = targetActionNode.data.config?.messageText || '';
-  let interpolatedMessageText = interpolateVariables(rawMessageText, incomingMsg);
-  let responseMessage: WorkflowExecutionResult['responseMessage'];
+    if (actionSubType === 'send_message') {
+      const sendOption = targetActionNode.data.config?.sendOption || 'message';
+      const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
 
-  if (actionSubType === 'send_message') {
-    const sendOption = targetActionNode.data.config?.sendOption || 'message';
-    const msgFormat = targetActionNode.data.config?.messageFormat || 'text';
-
-    if (sendOption === 'template') {
-      let bodyText = '';
-      let buttons: string[] = ['Get Started', 'Contact Sales'];
-      const templateParam = interpolatedMessageText || 'Customer';
-      let templateName = 'welcome_onboarding';
-      let templateLanguage = 'en_US';
-
-      let templateParams: string[] = [];
-      if (targetActionNode.data.config?.templateId) {
-        const tmpl = templates.find((t: any) => t.id === targetActionNode!.data.config!.templateId);
-        if (tmpl) {
-          bodyText = tmpl.bodyText;
-          templateName = tmpl.name;
-          templateLanguage = tmpl.language;
-          if (tmpl.buttons && tmpl.buttons.length > 0) {
-            buttons = tmpl.buttons;
-          }
-          
-          if (tmpl.bodyText.includes('{{')) {
-            const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
-            if (matches) {
-              const paramsList = templateParam.split(',').map((s: string) => s.trim());
-              matches.forEach((match: string, index: number) => {
-                templateParams.push(paramsList[index] || `Value${index + 1}`);
-              });
+      if (sendOption === 'template') {
+        let bodyText = '';
+        let buttons: string[] = ['Get Started', 'Contact Sales'];
+        const templateParam = interpolatedMessageText || 'Customer';
+        let templateName = 'welcome_onboarding';
+        let templateLanguage = 'en_US';
+        let templateParams: string[] = [];
+        
+        if (targetActionNode.data.config?.templateId) {
+          const tmpl = templates.find((t: any) => t.id === targetActionNode!.data.config!.templateId);
+          if (tmpl) {
+            bodyText = tmpl.bodyText;
+            templateName = tmpl.name;
+            templateLanguage = tmpl.language;
+            if (tmpl.buttons && tmpl.buttons.length > 0) buttons = tmpl.buttons;
+            
+            if (tmpl.bodyText.includes('{{')) {
+              const matches = tmpl.bodyText.match(/\{\{\d+\}\}/g);
+              if (matches) {
+                const paramsList = templateParam.split(',').map((s: string) => s.trim());
+                matches.forEach((match: string, index: number) => {
+                  templateParams.push(paramsList[index] || `Value${index + 1}`);
+                });
+              }
             }
+            
+            const paramsList = templateParam.split(',').map((s: string) => s.trim());
+            paramsList.forEach((val: string, idx: number) => {
+              bodyText = bodyText.replace(`{{${idx + 1}}}`, val);
+            });
+            bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
+          } else {
+            bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
           }
-          
-          const paramsList = templateParam.split(',').map((s: string) => s.trim());
-          paramsList.forEach((val: string, idx: number) => {
-            bodyText = bodyText.replace(`{{${idx + 1}}}`, val);
-          });
-          bodyText = bodyText.replace(/\{\{\d+\}\}/g, '...');
         } else {
           bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
         }
-      } else {
-        bodyText = `Welcome aboard ${templateParam}! We are excited to support your communication journey.`;
-      }
 
+        responseMessage = {
+          type: 'template',
+          body: bodyText,
+          templateName,
+          templateLanguage,
+          templateParams,
+          buttons
+        };
+      } else {
+        if (msgFormat === 'document') {
+          responseMessage = {
+            type: 'image',
+            body: interpolatedMessageText || 'Sending attached media...',
+            mediaUrl: targetActionNode.data.config?.mediaUrl || ''
+          };
+        } else {
+          responseMessage = {
+            type: 'text',
+            body: interpolatedMessageText || 'Hello! This is an automated response from WhatsFlow.'
+          };
+        }
+      }
+    } else if (actionSubType === 'send_buttons') {
+      const buttonOptions = targetActionNode.data.config?.buttonOptions
+        ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim())
+        : ['Onboarding', 'Documentation'];
       responseMessage = {
-        type: 'template',
-        body: bodyText,
-        templateName,
-        templateLanguage,
-        templateParams,
-        buttons
+        type: 'button',
+        body: interpolatedMessageText || 'Please choose an option:',
+        buttons: buttonOptions
+      };
+    } else if (actionSubType === 'send_text') {
+      responseMessage = {
+        type: 'text',
+        body: interpolatedMessageText || 'Hello! This is an automated response.'
+      };
+    } else if (actionSubType === 'send_flow') {
+      responseMessage = {
+        type: 'flow',
+        body: targetActionNode.data.config?.flowBody || 'Fill out your details to start!',
+        flowHeader: targetActionNode.data.config?.flowHeader || '',
+        flowFooter: targetActionNode.data.config?.flowFooter || '',
+        flowCta: targetActionNode.data.config?.flowCta || 'Open Flow',
+        flowId: targetActionNode.data.config?.flowId || '',
+        flowToken: targetActionNode.data.config?.flowToken || '',
+        flowScreen: targetActionNode.data.config?.flowScreen || '',
+        flowPayload: targetActionNode.data.config?.flowPayload || '{}'
+      };
+    } else if (actionSubType === 'ai_assistant') {
+      responseMessage = {
+        type: 'text',
+        body: `[AI Reply]: "${targetActionNode.data.config?.prompt || 'Support Bot'}". Responding to: "${messageBody}"`
+      };
+    } else if (actionSubType === 'change_label') {
+      return {
+        triggered: true,
+        triggerNodeId: triggerNode.id,
+        actionNodeId: targetActionNode.id,
+        actionType: actionSubType,
+        actionValue: targetActionNode.data.config?.newLabel
       };
     } else {
-      if (msgFormat === 'document') {
-        responseMessage = {
-          type: 'image',
-          body: interpolatedMessageText || 'Sending attached media...',
-          mediaUrl: targetActionNode.data.config?.mediaUrl || ''
-        };
-      } else {
-        responseMessage = {
-          type: 'text',
-          body: interpolatedMessageText || 'Hello! This is an automated response from WhatsFlow.'
-        };
-      }
+      // Default text response for unhandled subtypes
+      responseMessage = {
+        type: 'text',
+        body: interpolatedMessageText || 'Automated response from WhatsFlow.'
+      };
     }
-  } else if (actionSubType === 'send_buttons') {
-    const buttonOptions = targetActionNode.data.config?.buttonOptions
-      ? targetActionNode.data.config.buttonOptions.split(',').map((b: string) => b.trim())
-      : ['Onboarding', 'Documentation'];
-    responseMessage = {
-      type: 'button',
-      body: interpolatedMessageText || 'Please choose an option:',
-      buttons: buttonOptions
-    };
-  } else if (actionSubType === 'send_text') {
-    responseMessage = {
-      type: 'text',
-      body: interpolatedMessageText || 'Hello! This is an automated response.'
-    };
-  } else if (actionSubType === 'send_flow') {
-    responseMessage = {
-      type: 'flow',
-      body: targetActionNode.data.config?.flowBody || 'Fill out your details to start!',
-      flowHeader: targetActionNode.data.config?.flowHeader || '',
-      flowFooter: targetActionNode.data.config?.flowFooter || '',
-      flowCta: targetActionNode.data.config?.flowCta || 'Open Flow',
-      flowId: targetActionNode.data.config?.flowId || '',
-      flowToken: targetActionNode.data.config?.flowToken || '',
-      flowScreen: targetActionNode.data.config?.flowScreen || '',
-      flowPayload: targetActionNode.data.config?.flowPayload || '{}'
-    };
-  } else if (actionSubType === 'ai_assistant') {
-    responseMessage = {
-      type: 'text',
-      body: `[AI Reply]: "${targetActionNode.data.config?.prompt || 'Support Bot'}". Responding to: "${messageBody}"`
-    };
-  } else if (actionSubType === 'change_label') {
+
     return {
       triggered: true,
       triggerNodeId: triggerNode.id,
       actionNodeId: targetActionNode.id,
       actionType: actionSubType,
-      actionValue: targetActionNode.data.config?.newLabel
+      responseMessage
     };
-  } else {
-    // Default text response for unhandled subtypes
-    responseMessage = {
-      type: 'text',
-      body: interpolatedMessageText || 'Automated response from WhatsFlow.'
-    };
-  }
+  });
 
-  console.log('[WorkflowEngine] Response to send:', responseMessage);
-
-  return {
-    triggered: true,
-    triggerNodeId: triggerNode.id,
-    actionNodeId: targetActionNode.id,
-    actionType: actionSubType,
-    responseMessage
-  };
+  return results;
 }
 
 /**
