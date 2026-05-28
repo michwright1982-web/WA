@@ -3,12 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Shield, ArrowRight, MessageCircle, BarChart3, GitFork, Check, Sun, Moon } from 'lucide-react';
+import { Zap, Shield, ArrowRight, MessageCircle, BarChart3, GitFork, Check } from 'lucide-react';
 import { useWhatsFlow } from '@/lib/whatsflow-store';
 
 export default function Home() {
   const router = useRouter();
-  const { theme, toggleTheme } = useWhatsFlow();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,15 +44,6 @@ export default function Home() {
           <Link href="/dashboard" className="glow-btn text-xs font-semibold px-4 py-2 rounded-lg bg-white text-black shadow-lg">
             Launch Console
           </Link>
-
-          {/* Theme Toggler button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-350 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow-sm"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-400" /> : <Sun className="h-4 w-4 text-yellow-450" />}
-          </button>
         </div>
       </header>
 

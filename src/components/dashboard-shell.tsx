@@ -172,15 +172,6 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
             <Link href="/chat" className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300 hover:text-white transition-all">
               <MessageSquare className="h-3.5 w-3.5" /> Inbox
             </Link>
-
-            {/* Premium Theme Toggle Switch */}
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow-sm"
-              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-            >
-              {theme === 'light' ? <Moon className="h-4 w-4 text-indigo-400" /> : <Sun className="h-4 w-4 text-yellow-450" />}
-            </button>
           </div>
         </header>
 

@@ -1240,11 +1240,11 @@ export default function WorkflowsPage() {
                       const updatedEdges = activeWorkflow.edges.filter(e => e.id !== edge.id);
                       updateWorkflow(activeWorkflow.id, activeWorkflow.nodes, updatedEdges);
                     }}
-                    style={{ left: `${bezMidX - 9}px`, top: `${bezMidY - 9}px` }}
-                    className="absolute h-4.5 w-4.5 bg-zinc-950 hover:bg-red-950/90 border border-zinc-800 hover:border-red-500/80 text-zinc-400 hover:text-red-400 rounded-full flex items-center justify-center font-bold text-[9px] transition-all shadow-[0_2px_10px_rgba(0,0,0,0.9)] cursor-pointer select-none z-30"
+                    style={{ left: `${bezMidX - 10}px`, top: `${bezMidY - 10}px` }}
+                    className="absolute h-5 w-5 bg-zinc-950 hover:bg-red-950/90 border border-zinc-800 hover:border-red-500/80 text-zinc-400 hover:text-red-400 rounded-full flex items-center justify-center transition-all shadow-[0_2px_10px_rgba(0,0,0,0.9)] cursor-pointer select-none z-30"
                     title="Delete Connection"
                   >
-                    ×
+                    <Trash2 className="h-2.5 w-2.5" />
                   </button>
                 );
               })}

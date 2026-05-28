@@ -572,15 +572,15 @@ export default function ChatPage() {
                 const isOutgoing = msg.direction === 'OUTGOING';
                 return (
                   <div key={`${msg.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3`}>
-                    <div className={`max-w-[70%] p-3.5 shadow-md border transition-all duration-200 ${
+                    <div className={`max-w-[70%] p-3.5 shadow-lg transition-all duration-200 ${
                       isOutgoing 
-                        ? 'bg-emerald-600 text-white border-emerald-500/30 rounded-2xl rounded-tr-none' 
-                        : 'bg-zinc-800 border-zinc-750 text-white rounded-2xl rounded-tl-none'
+                        ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none shadow-[0_3px_12px_rgba(16,185,129,0.15)]' 
+                        : 'bg-white text-zinc-950 rounded-2xl rounded-tl-none shadow-[0_3px_12px_rgba(255,255,255,0.08)]'
                     }`} >
                       
                       {/* Media image render */}
                       {msg.type === 'image' && msg.mediaUrl && (
-                        <div className="mb-2.5 rounded-lg overflow-hidden max-w-xs border border-zinc-700 shadow-sm">
+                        <div className="mb-2.5 rounded-lg overflow-hidden max-w-xs border border-zinc-200 shadow-sm">
                           <img src={msg.mediaUrl} alt="media preview" className="w-full h-auto object-cover" />
                         </div>
                       )}
@@ -590,15 +590,15 @@ export default function ChatPage() {
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center justify-between gap-4 ${
                           isOutgoing 
                             ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
-                            : 'bg-zinc-900 border-zinc-700 text-zinc-100'
+                            : 'bg-zinc-100 border-zinc-200 text-zinc-900'
                         }`}>
                           <div className="flex items-center gap-2.5 truncate">
-                            <div className={`p-2 rounded-lg ${isOutgoing ? 'bg-white/10 text-emerald-250' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                            <div className={`p-2 rounded-lg ${isOutgoing ? 'bg-white/10 text-emerald-250' : 'bg-indigo-500/10 text-indigo-650'}`}>
                               <FileText className="h-5 w-5" />
                             </div>
                             <div className="truncate">
                               <span className="text-[11px] font-bold block truncate max-w-[150px]" title={msg.body}>{msg.body}</span>
-                              <span className={`text-[8px] block uppercase font-mono font-bold ${isOutgoing ? 'text-emerald-300' : 'text-zinc-550'}`}>PDF Document</span>
+                              <span className={`text-[8px] block uppercase font-mono font-bold ${isOutgoing ? 'text-emerald-300' : 'text-zinc-500'}`}>PDF Document</span>
                             </div>
                           </div>
                           <a
@@ -608,7 +608,7 @@ export default function ChatPage() {
                             className={`p-1.5 rounded-lg border transition-colors ${
                               isOutgoing 
                                 ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white' 
-                                : 'bg-zinc-850 hover:bg-zinc-750 border-zinc-700 text-zinc-400 hover:text-white'
+                                : 'bg-white hover:bg-zinc-50 border-zinc-300 text-zinc-700 hover:text-black'
                             }`}
                             title="Download File"
                           >
@@ -622,14 +622,14 @@ export default function ChatPage() {
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center gap-3 ${
                           isOutgoing 
                             ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
-                            : 'bg-zinc-900 border-zinc-700 text-zinc-100'
+                            : 'bg-zinc-100 border-zinc-200 text-zinc-900'
                         }`}>
                           <button
                             type="button"
                             className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${
                               isOutgoing
                                 ? 'bg-white text-emerald-850 hover:bg-emerald-50'
-                                : 'bg-indigo-650 hover:bg-indigo-550 text-white'
+                                : 'bg-indigo-600 hover:bg-indigo-550 text-white'
                             }`}
                             title="Play voice mail"
                           >
@@ -648,7 +648,7 @@ export default function ChatPage() {
                               <div className={`h-4 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/30' : 'bg-indigo-500/20'}`}></div>
                               <div className={`h-1.5 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/20' : 'bg-indigo-500/10'}`}></div>
                             </div>
-                            <div className={`flex justify-between items-center text-[8px] font-mono font-bold ${isOutgoing ? 'text-emerald-300' : 'text-zinc-500'}`}>
+                            <div className={`flex justify-between items-center text-[8px] font-mono font-bold ${isOutgoing ? 'text-emerald-250' : 'text-zinc-500'}`}>
                               <span className="flex items-center gap-1"><Volume2 className="h-2.5 w-2.5" /> VOICE MAIL</span>
                               <span>{msg.body.replace('Voice Mail (', '').replace(')', '')}</span>
                             </div>
@@ -657,19 +657,19 @@ export default function ChatPage() {
                       )}
 
                       {msg.type !== 'document' && msg.type !== 'voice' && (
-                        <div className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
                           {msg.type === 'button' && !isOutgoing ? (
-                            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+                            <span className="inline-flex items-center gap-1.5 text-indigo-650 font-bold">
                               <span>🔘 Interactive Click:</span>
-                              <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{msg.body}</span>
+                              <span className="text-indigo-600 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{msg.body}</span>
                             </span>
                           ) : msg.type === 'flow' ? (
                             <div className="flex flex-col gap-1.5">
-                              <span className="inline-flex items-center gap-1.5 text-indigo-400 font-bold uppercase tracking-wide text-[9px]">
+                              <span className="inline-flex items-center gap-1.5 text-indigo-600 font-bold uppercase tracking-wide text-[9px]">
                                 <span>📱 WhatsApp Flow</span>
                               </span>
-                              <span className="text-zinc-200">{msg.body}</span>
-                              <div className="mt-2 w-full bg-zinc-800 text-zinc-300 text-center py-1.5 rounded-lg text-[10px] font-bold border border-zinc-700 shadow-sm">Open Flow</div>
+                              <span className="text-zinc-900">{msg.body}</span>
+                              <div className="mt-2 w-full bg-zinc-100 text-zinc-800 text-center py-1.5 rounded-lg text-[10px] font-bold border border-zinc-200 shadow-sm">Open Flow</div>
                             </div>
                           ) : (
                             msg.body
@@ -681,7 +681,7 @@ export default function ChatPage() {
                       {msg.buttons && (
                         <div className="mt-3 flex flex-wrap gap-1.5 font-sans">
                           {msg.buttons.map((b, bidx) => (
-                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 font-sans ${isOutgoing ? 'bg-white/10 border-white/20 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-400'}`}>
+                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 font-sans ${isOutgoing ? 'bg-white/10 border-white/20 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200'}`}>
                               🔘 {b}
                             </span>
                           ))}
@@ -690,7 +690,7 @@ export default function ChatPage() {
 
                       {/* Timestamp & Tick Delivery Status */}
                       <div className="mt-2 flex items-center justify-end gap-1 text-[9px]">
-                        <span className={`opacity-65 ${isOutgoing ? 'text-emerald-200' : 'text-zinc-400'}`}>
+                        <span className={`opacity-65 ${isOutgoing ? 'text-emerald-200' : 'text-zinc-500'}`}>
                           {isMounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                         {isOutgoing && (

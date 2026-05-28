@@ -210,7 +210,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string>('');
   const [activeContactId, setActiveContactId] = useState<string>('');
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
+  const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -238,10 +238,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const storedActiveContactId = localStorage.getItem('whatsflow_active_contact_id');
       setActiveContactId(storedActiveContactId || 'c-1');
 
-      const storedTheme = localStorage.getItem('whatsflow_theme') as 'light' | 'dark';
-      if (storedTheme === 'light' || storedTheme === 'dark') {
-        setThemeState(storedTheme);
-      }
+      // Hardcode theme to dark mode permanently
+      setThemeState('dark');
 
       setHasLoaded(true);
     }
@@ -297,15 +295,10 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const root = document.documentElement;
-      if (theme === 'light') {
-        root.classList.remove('dark');
-        root.classList.add('light');
-      } else {
-        root.classList.remove('light');
-        root.classList.add('dark');
-      }
+      root.classList.remove('light');
+      root.classList.add('dark');
     }
-  }, [theme]);
+  }, []);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -758,14 +751,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const setTheme = (newTheme: 'light' | 'dark') => {
-    setThemeState(newTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('whatsflow_theme', newTheme);
-    }
+    setThemeState('dark');
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    // Theme toggling is disabled. App is dark mode only.
   };
 
   return (
