@@ -1006,6 +1006,31 @@ export default function WorkflowsPage() {
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                 </button>
+                <button
+                  onClick={() => {
+                    const name = prompt('Enter name for the new workflow:', 'Untitled Workflow');
+                    if (name && name.trim() !== '') {
+                      const newWf = addWorkflow({
+                        name: name.trim(),
+                        status: 'INACTIVE',
+                        nodes: [
+                          {
+                            id: '1',
+                            type: 'triggerNode',
+                            position: { x: 150, y: 200 },
+                            data: { label: 'Incoming Message', description: 'Triggers when a message is received' }
+                          }
+                        ],
+                        edges: []
+                      });
+                      setSelectedFlowId(newWf.id);
+                    }
+                  }}
+                  className="p-1 text-zinc-500 hover:text-emerald-400 transition-colors"
+                  title="Add New Workflow"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
               <p className="text-[10px] text-zinc-500 mt-0.5">Drag nodes to position, click to edit properties</p>
             </div>
