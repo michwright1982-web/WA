@@ -32,7 +32,8 @@ import {
   Upload,
   Edit2,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 
 // WhatsApp Business API Actions Node Library Registry
@@ -103,7 +104,7 @@ const getNodeIcon = (subType: string, type: string) => {
 };
 
 export default function WorkflowsPage() {
-  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, addWorkflow, deleteWorkflow, renameWorkflow } = useWhatsFlow();
+  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState('');
 
   // Restore active workflow selection from localStorage
@@ -697,6 +698,58 @@ export default function WorkflowsPage() {
   
   // Node active status
   const [configIsDisabled, setConfigIsDisabled] = useState(false);
+
+  const [isSyncingFlows, setIsSyncingFlows] = useState(false);
+  const activeAccount = accounts?.find(a => a.id === activeAccountId);
+
+  const handleSyncFlows = async () => {
+    if (!activeAccount || !activeAccount.businessAccountId || !activeAccount.accessToken) {
+      alert('Please configure a WhatsApp account with a Business Account ID and Access Token to sync flows from Meta.');
+      return;
+    }
+
+    const btn = document.getElementById('sync-flows-btn');
+    if (btn) btn.innerHTML = 'Syncing...';
+
+    setIsSyncingFlows(true);
+    try {
+      const response = await fetch(`https://graph.facebook.com/v20.0/${activeAccount.businessAccountId}/flows`, {
+        headers: {
+          'Authorization': `Bearer ${activeAccount.accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch flows from Meta');
+      }
+      
+      const data = await response.json();
+      const metaFlows = data.data || [];
+      
+      metaFlows.forEach((f: any) => {
+        if (!flows.some(existing => existing.id === f.id)) {
+          addFlow({
+            id: f.id,
+            name: f.name,
+            status: f.status,
+            categories: f.categories || ['UTILITY'],
+            previewUrl: f.preview_url
+          });
+        }
+      });
+      
+      if (btn) btn.innerHTML = 'Synced!';
+    } catch (error) {
+      console.error('Error syncing flows:', error);
+      if (btn) btn.innerHTML = 'Error';
+      alert('Error syncing flows from Meta API. Please check your credentials and internet connection.');
+    } finally {
+      setIsSyncingFlows(false);
+      setTimeout(() => {
+        if (btn) btn.innerHTML = 'Sync Flows';
+      }, 2000);
+    }
+  };
 
   const handleSelectNode = (node: FlowNode) => {
     setActiveNodeId(node.id);
@@ -1980,6 +2033,37 @@ export default function WorkflowsPage() {
                                     placeholder="Fill out your details to start! ✨"
                                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                                   />
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Select Synced WhatsApp Flow</label>
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={configFlowId}
+                                      onChange={(e) => {
+                                        const selectedId = e.target.value;
+                                        setConfigFlowId(selectedId);
+                                        const matchedFlow = flows.find(f => f.id === selectedId);
+                                        if (matchedFlow) {
+                                          setConfigNodeLabel(`Send ${matchedFlow.name}`);
+                                        }
+                                      }}
+                                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                    >
+                                      <option value="">-- Choose a Meta Flow --</option>
+                                      {flows.map(f => (
+                                        <option key={f.id} value={f.id}>{f.name} ({f.status})</option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      id="sync-flows-btn"
+                                      onClick={handleSyncFlows}
+                                      className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" /> Sync Flows
+                                    </button>
+                                  </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">

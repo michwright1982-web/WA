@@ -61,6 +61,15 @@ export interface Template {
   createdAt: string;
 }
 
+export interface WhatsAppFlow {
+  id: string;
+  name: string;
+  status: string;
+  categories: string[];
+  previewUrl?: string;
+  createdAt: string;
+}
+
 export interface FlowNode {
   id: string;
   type: string;
@@ -93,6 +102,7 @@ interface WhatsFlowContextType {
   contacts: Contact[];
   messages: Message[];
   templates: Template[];
+  flows: WhatsAppFlow[];
   workflows: Workflow[];
   activeAccountId: string;
   setActiveAccountId: (id: string) => void;
@@ -112,6 +122,8 @@ interface WhatsFlowContextType {
   deleteContact: (id: string) => void;
   addTemplate: (template: Omit<Template, 'id' | 'createdAt'>) => void;
   deleteTemplate: (id: string) => void;
+  addFlow: (flow: Omit<WhatsAppFlow, 'createdAt'>) => void;
+  deleteFlow: (id: string) => void;
   addWorkflow: (workflow: Omit<Workflow, 'id' | 'createdAt'>) => Workflow;
   updateWorkflow: (id: string, nodes: FlowNode[], edges: FlowEdge[]) => void;
   deleteWorkflow: (id: string) => void;
@@ -179,6 +191,23 @@ const SEED_TEMPLATES: Template[] = [
   { id: 't-3', name: 'verification_otp', category: 'AUTHENTICATION', language: 'en_US', status: 'APPROVED', bodyText: 'Your WhatsFlow verification code is: {{1}}. Do not share this code.', createdAt: '2026-05-25T09:12:00Z' }
 ];
 
+const SEED_FLOWS: WhatsAppFlow[] = [
+  {
+    id: '775192158724649',
+    name: 'Lead Qualification Survey',
+    status: 'PUBLISHED',
+    categories: ['MARKETING'],
+    createdAt: '2026-05-24T10:00:00Z'
+  },
+  {
+    id: '881729481928374',
+    name: 'Appointment Booking Flow',
+    status: 'DRAFT',
+    categories: ['UTILITY'],
+    createdAt: '2026-05-25T11:30:00Z'
+  }
+];
+
 const SEED_WORKFLOWS: Workflow[] = [
   {
     id: 'w-1',
@@ -207,6 +236,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string>('');
   const [activeContactId, setActiveContactId] = useState<string>('');
@@ -228,6 +258,9 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const storedTemplates = localStorage.getItem('whatsflow_templates');
       try { setTemplates(storedTemplates ? JSON.parse(storedTemplates) : SEED_TEMPLATES); } catch (e) { setTemplates(SEED_TEMPLATES); }
+
+      const storedFlows = localStorage.getItem('whatsflow_flows');
+      try { setFlows(storedFlows ? JSON.parse(storedFlows) : SEED_FLOWS); } catch (e) { setFlows(SEED_FLOWS); }
 
       const storedWorkflows = localStorage.getItem('whatsflow_workflows');
       try { setWorkflows(storedWorkflows ? JSON.parse(storedWorkflows) : SEED_WORKFLOWS); } catch (e) { setWorkflows(SEED_WORKFLOWS); }
@@ -281,6 +314,15 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return () => clearTimeout(handler);
     }
   }, [templates, hasLoaded]);
+
+  useEffect(() => {
+    if (hasLoaded) {
+      const handler = setTimeout(() => {
+        localStorage.setItem('whatsflow_flows', JSON.stringify(flows));
+      }, 300);
+      return () => clearTimeout(handler);
+    }
+  }, [flows, hasLoaded]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -459,6 +501,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         body: JSON.stringify({
           workflow: activeWorkflow || null,
           templates: templates,
+          flows: flows,
           account: activeAccount || null,
           contacts: contacts
         })
@@ -678,6 +721,14 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTemplates(prev => prev.filter(t => t.id !== id));
   };
 
+  const addFlow = (flow: Omit<WhatsAppFlow, 'createdAt'>) => {
+    setFlows(prev => [...prev, { ...flow, id: flow.id, createdAt: new Date().toISOString() }]);
+  };
+
+  const deleteFlow = (id: string) => {
+    setFlows(prev => prev.filter(f => f.id !== id));
+  };
+
   const addWorkflow = (flow: Omit<Workflow, 'id' | 'createdAt'>) => {
     const newWorkflow: Workflow = {
       ...flow,
@@ -764,6 +815,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       contacts,
       messages,
       templates,
+      flows,
       workflows,
       activeAccountId,
       setActiveAccountId,
@@ -783,6 +835,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       deleteContact,
       addTemplate,
       deleteTemplate,
+      addFlow,
+      deleteFlow,
       addWorkflow,
       updateWorkflow,
       deleteWorkflow,

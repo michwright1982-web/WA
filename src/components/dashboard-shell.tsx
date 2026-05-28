@@ -18,7 +18,8 @@ import {
   Settings,
   Zap,
   Sun,
-  Moon
+  Moon,
+  FileText
 } from 'lucide-react';
 
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -33,6 +34,7 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
     { name: 'Live Chat Inbox', href: '/chat', icon: MessageSquare, badge: 'Live' },
     { name: 'Flow Builder', href: '/workflows', icon: GitFork },
     { name: 'Templates Manager', href: '/templates', icon: FileCode },
+    { name: 'Flows Manager', href: '/flows', icon: FileText },
     { name: 'CRM Contacts', href: '/contacts', icon: Users },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'API Credentials', href: '/credentials', icon: Key },

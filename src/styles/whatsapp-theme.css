@@ -15,7 +15,7 @@
   --color-sidebar-bg: #0c0d12;
   --color-header-bg: #090a0e;
   /* Font stack similar to WhatsApp Web */
-  --font-family-base: 'Inter', system-ui, sans-serif;
+  --font-family-base: "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Apply global font */
