@@ -687,7 +687,9 @@ export default function ChatPage() {
                         </span>
                         {isOutgoing && (
                           msg.status === 'failed' ? <span className="text-rose-500 font-bold ml-1">Error sending message</span> :
-                          msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5] text-sky-400" /> : <Check className="h-3 w-3" />
+                          msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5] text-sky-400" /> :
+                          msg.status === 'delivered' ? <CheckCheck className="h-3 w-3 stroke-[2.5]" /> :
+                          <Check className="h-3 w-3" />
                         )}
                       </div>
 
