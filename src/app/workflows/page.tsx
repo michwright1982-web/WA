@@ -702,6 +702,10 @@ export default function WorkflowsPage() {
   const [configIsDisabled, setConfigIsDisabled] = useState(false);
   const [configTargetLabel, setConfigTargetLabel] = useState('new');
   const [customLabelInput, setCustomLabelInput] = useState('');
+  const [configAiModel, setConfigAiModel] = useState('gpt-5-mini');
+  const [configAiApiKey, setConfigAiApiKey] = useState('');
+  const [configAiMemoryEnabled, setConfigAiMemoryEnabled] = useState(false);
+  const [configAiMessageLimit, setConfigAiMessageLimit] = useState('10');
 
   const [isSyncingFlows, setIsSyncingFlows] = useState(false);
   const activeAccount = accounts?.find(a => a.id === activeAccountId);
@@ -787,6 +791,10 @@ export default function WorkflowsPage() {
     setConfigMessageFormat(c.messageFormat || 'text');
     setConfigIsDisabled(c.isDisabled || false);
     setConfigTargetLabel(c.targetLabel || 'new');
+    setConfigAiModel(c.aiModel || 'gpt-5-mini');
+    setConfigAiApiKey(c.aiApiKey || '');
+    setConfigAiMemoryEnabled(c.aiMemoryEnabled || false);
+    setConfigAiMessageLimit(c.aiMessageLimit || '10');
 
     // Bind dynamic branches for If-Else / Switch nodes
     if (c.subType === 'if_else') {
@@ -842,6 +850,10 @@ export default function WorkflowsPage() {
               messageFormat: configMessageFormat,
               isDisabled: configIsDisabled,
               targetLabel: configTargetLabel,
+              aiModel: configAiModel,
+              aiApiKey: configAiApiKey,
+              aiMemoryEnabled: configAiMemoryEnabled,
+              aiMessageLimit: configAiMessageLimit,
               branches: isBranching ? configBranches : undefined
             }
           }
@@ -2149,25 +2161,98 @@ export default function WorkflowsPage() {
 
                           if (subType === 'ai_assistant') {
                             return (
-                              <div>
-                                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">System Instructions Prompt</label>
-                                <textarea
-                                  rows={3}
-                                  value={configPrompt}
-                                  onChange={(e) => setConfigPrompt(e.target.value)}
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDragEnter={() => setDraggedOverField('aiPrompt')}
-                                  onDragLeave={() => setDraggedOverField(null)}
-                                  onDrop={(e) => {
-                                    handleDrop(e, setConfigPrompt, configPrompt);
-                                    setDraggedOverField(null);
-                                  }}
-                                  placeholder="Instruct the AI helper how to answer..."
-                                  className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
-                                    draggedOverField === 'aiPrompt' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
-                                  }`}
-                                />
-                                <p className="text-[8px] text-zinc-500 mt-1">E.g., You are a support bot representing WhatsFlow platform...</p>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Select AI Model Provider</label>
+                                  <select
+                                    value={configAiModel}
+                                    onChange={(e) => setConfigAiModel(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                  >
+                                    <optgroup label="OpenAI (ChatGPT)" className="bg-zinc-950 text-zinc-300">
+                                      <option value="gpt-5-mini">GPT-5 Mini (Next-Gen Lowest Tokens / Recommended)</option>
+                                      <option value="gpt-4o-mini">GPT-4o Mini (Lowest Tokens / Recommended)</option>
+                                      <option value="gpt-4o">GPT-4o (Standard)</option>
+                                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                    </optgroup>
+                                    <optgroup label="Google (Gemini)" className="bg-zinc-950 text-zinc-300">
+                                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                    </optgroup>
+                                    <optgroup label="Anthropic (Claude)" className="bg-zinc-950 text-zinc-300">
+                                      <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                                      <option value="claude-3-haiku">Claude 3 Haiku</option>
+                                    </optgroup>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Model API Key</label>
+                                  <input
+                                    type="password"
+                                    value={configAiApiKey}
+                                    onChange={(e) => setConfigAiApiKey(e.target.value)}
+                                    placeholder="sk-••••••••••••••••••••••••"
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                  />
+                                  <p className="text-[8px] text-zinc-500 mt-1">Credentials are stored locally and encrypted.</p>
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">System Instructions Prompt</label>
+                                  <textarea
+                                    rows={3}
+                                    value={configPrompt}
+                                    onChange={(e) => setConfigPrompt(e.target.value)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDragEnter={() => setDraggedOverField('aiPrompt')}
+                                    onDragLeave={() => setDraggedOverField(null)}
+                                    onDrop={(e) => {
+                                      handleDrop(e, setConfigPrompt, configPrompt);
+                                      setDraggedOverField(null);
+                                    }}
+                                    placeholder="Instruct the AI assistant how to reply to the user..."
+                                    className={`w-full bg-zinc-950 border rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all ${
+                                      draggedOverField === 'aiPrompt' ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'border-zinc-800'
+                                    }`}
+                                  />
+                                  <p className="text-[8px] text-zinc-500 mt-1">E.g., You are a support assistant representing WhatsFlow platform...</p>
+                                </div>
+
+                                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-3.5 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <span className="text-xs font-bold text-zinc-200 block">🧠 Conversation Memory</span>
+                                      <span className="text-[8px] text-zinc-500 block">Maintains thread context and remembers past messages</span>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                                      <input
+                                        type="checkbox"
+                                        checked={configAiMemoryEnabled}
+                                        onChange={(e) => setConfigAiMemoryEnabled(e.target.checked)}
+                                        className="sr-only peer"
+                                      />
+                                      <div className="w-9 h-5 bg-zinc-850 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                  </div>
+
+                                  {configAiMemoryEnabled && (
+                                    <div className="space-y-1 border-t border-zinc-800/60 pt-2.5">
+                                      <label className="text-[8px] text-zinc-500 uppercase font-bold block mb-0.5">Context Window (Receiving Messages Count)</label>
+                                      <select
+                                        value={configAiMessageLimit}
+                                        onChange={(e) => setConfigAiMessageLimit(e.target.value)}
+                                        className="w-full bg-zinc-900 border border-zinc-800 rounded p-1 text-[10px] text-white focus:outline-none focus:border-indigo-500"
+                                      >
+                                        <option value="5">Remember last 5 messages</option>
+                                        <option value="10">Remember last 10 messages</option>
+                                        <option value="20">Remember last 20 messages</option>
+                                        <option value="50">Remember last 50 messages</option>
+                                      </select>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             );
                           }
