@@ -59,6 +59,13 @@ export default function ChatPage() {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
+  // Auto-select the active chat if there is only one CRM contact in the list
+  useEffect(() => {
+    if (isMounted && contacts.length === 1 && activeContactId !== contacts[0].id) {
+      setActiveContactId(contacts[0].id);
+    }
+  }, [isMounted, contacts, activeContactId, setActiveContactId]);
+
   // Fetch WhatsApp profile pictures for contacts that don't have one yet
   const [fetchedPicIds, setFetchedPicIds] = useState<Set<string>>(new Set());
   useEffect(() => {
