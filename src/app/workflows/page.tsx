@@ -48,6 +48,7 @@ const nodeLibrary = {
     { subType: 'keyword_check', label: '🔍 Keyword Match', desc: 'Branches conversation based on keywords.', defaultLabel: 'Check Keywords', defaultDesc: 'Branches depending on keywords matched' },
     { subType: 'data_filter', label: '🔮 Data & Tag Filter', desc: 'Filters contacts, messages or tags based on custom rules.', defaultLabel: 'Filter Contacts', defaultDesc: 'Filter data variables or tags' },
     { subType: 'business_hours', label: '🔍 Business Hours Check', desc: 'Branches on open hours vs closed time windows.', defaultLabel: 'Is Business Open?', defaultDesc: 'Verify business hours vs holiday time' },
+    { subType: 'label_check', label: '🏷️ Route Customer Label', desc: 'Routes conversation depending on CRM labels, including unlabeled clients.', defaultLabel: 'Identify Label Route', defaultDesc: 'Branch flows depending on custom tags or unlabeled status' },
     { subType: 'if_else', label: '⌥ If-Else Branching', desc: 'Logical router checking criteria to YES or NO path.', defaultLabel: 'If / Else Logic', defaultDesc: 'Check condition to route yes or no path' },
     { subType: 'while_loop', label: '🔄 Loop Operator', desc: 'Loops connected actions repeatedly under limits.', defaultLabel: 'While Loop Control', defaultDesc: 'Execute connected steps in a loop' },
     { subType: 'merge_paths', label: '🔀 Merge Paths', desc: 'Merge multiple parallel branches back into a single path.', defaultLabel: 'Merge Branch Paths', defaultDesc: 'Consolidate branch flows' },
@@ -79,7 +80,8 @@ const getNodeIcon = (subType: string, type: string) => {
     case 'keyword_check': return <HelpCircle {...props} className="text-sky-400" />;
     case 'data_filter': return <Filter {...props} className="text-sky-400" />;
     case 'business_hours': return <Clock {...props} className="text-sky-400" />;
-    case 'if_else': return <GitBranch {...props} className="text-sky-400" />;
+    case 'label_check': return <Tag {...props} className="text-sky-400" />;
+    case 'if_else': return <GitBranch {...props} className="text-sky-450" />;
     case 'while_loop': return <Repeat {...props} className="text-sky-400" />;
     case 'merge_paths': return <GitMerge {...props} className="text-sky-400" />;
     case 'switch_logic': return <Shuffle {...props} className="text-sky-400" />;
@@ -698,6 +700,7 @@ export default function WorkflowsPage() {
   
   // Node active status
   const [configIsDisabled, setConfigIsDisabled] = useState(false);
+  const [configTargetLabel, setConfigTargetLabel] = useState('new');
 
   const [isSyncingFlows, setIsSyncingFlows] = useState(false);
   const activeAccount = accounts?.find(a => a.id === activeAccountId);
@@ -782,6 +785,7 @@ export default function WorkflowsPage() {
     setConfigSendOption(c.sendOption || 'message');
     setConfigMessageFormat(c.messageFormat || 'text');
     setConfigIsDisabled(c.isDisabled || false);
+    setConfigTargetLabel(c.targetLabel || 'new');
 
     // Bind dynamic branches for If-Else / Switch nodes
     if (c.subType === 'if_else') {
@@ -834,6 +838,7 @@ export default function WorkflowsPage() {
               sendOption: configSendOption,
               messageFormat: configMessageFormat,
               isDisabled: configIsDisabled,
+              targetLabel: configTargetLabel,
               branches: isBranching ? configBranches : undefined
             }
           }
@@ -1820,6 +1825,34 @@ export default function WorkflowsPage() {
 
                         {/* Subtype-specific dynamic configuration fields based on WhatsApp API Action type */}
                         {(() => {
+                          if (subType === 'label_check') {
+                            return (
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Identify Customer Label</label>
+                                  <select
+                                    value={configTargetLabel}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setConfigTargetLabel(val);
+                                      setConfigNodeLabel(val === 'unlabeled' ? 'Route Unlabeled Clients' : `Route Label: ${val}`);
+                                    }}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                                  >
+                                    <option value="unlabeled">⛔ Not Labeled (Unlabeled Customer)</option>
+                                    <option value="new">new</option>
+                                    <option value="language selected">language selected</option>
+                                    <option value="flow filled">flow filled</option>
+                                    <option value="qualified">qualified</option>
+                                  </select>
+                                </div>
+                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
+                                  💡 **Label Routing**: Matches the contact's CRM label. Useful for routing non-labeled customers to general support, or qualified ones directly to sales.
+                                </div>
+                              </div>
+                            );
+                          }
+
                           if (subType === 'incoming_text' || subType === 'keyword_check') {
                             return (
                               <div>
