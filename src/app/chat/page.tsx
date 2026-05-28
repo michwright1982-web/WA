@@ -681,15 +681,15 @@ export default function ChatPage() {
                       )}
 
                       {/* Timestamp & Tick Delivery Status */}
-                      <div className="mt-2.5 flex items-center justify-end gap-1 text-[9px] opacity-60">
-                        <span>
+                      <div className="mt-2.5 flex items-center justify-end gap-1 text-[9px]">
+                        <span className="opacity-60 text-zinc-400">
                           {isMounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                         {isOutgoing && (
                           msg.status === 'failed' ? <span className="text-rose-500 font-bold ml-1">Error sending message</span> :
-                          msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5] text-sky-400" /> :
-                          msg.status === 'delivered' ? <CheckCheck className="h-3 w-3 stroke-[2.5]" /> :
-                          <Check className="h-3 w-3" />
+                          msg.status === 'read' ? <CheckCheck className="h-3.5 w-3.5 stroke-[2.5] text-sky-400" /> :
+                          msg.status === 'delivered' ? <CheckCheck className="h-3.5 w-3.5 stroke-[2.5] text-zinc-400 opacity-80" /> :
+                          <Check className="h-3.5 w-3.5 text-zinc-500 opacity-70" />
                         )}
                       </div>
 
