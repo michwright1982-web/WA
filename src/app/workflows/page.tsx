@@ -30,7 +30,9 @@ import {
   Search,
   Download,
   Upload,
-  Edit2
+  Edit2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // WhatsApp Business API Actions Node Library Registry
@@ -1311,6 +1313,36 @@ export default function WorkflowsPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            const isCurrentlyDisabled = node.data.config?.isDisabled || false;
+                            const updatedNodes = activeWorkflow.nodes.map(n => {
+                              if (n.id === node.id) {
+                                return {
+                                  ...n,
+                                  data: {
+                                    ...n.data,
+                                    config: {
+                                      ...n.data.config,
+                                      isDisabled: !isCurrentlyDisabled
+                                    }
+                                  }
+                                };
+                              }
+                              return n;
+                            });
+                            updateWorkflow(activeWorkflow.id, updatedNodes, activeWorkflow.edges);
+                          }}
+                          className={`p-0.5 rounded transition-colors ${node.data.config?.isDisabled ? 'text-red-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-red-400'}`}
+                          title={node.data.config?.isDisabled ? "Enable Node" : "Disable Node"}
+                        >
+                          {node.data.config?.isDisabled ? (
+                            <EyeOff className="h-3 w-3" />
+                          ) : (
+                            <Eye className="h-3 w-3" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleCopyNode(node);
                           }}
                           className="text-zinc-500 hover:text-indigo-400 p-0.5 rounded transition-colors"
@@ -1579,8 +1611,22 @@ export default function WorkflowsPage() {
               const subType = node.data.config?.subType || '';
 
               return (
-                <div className="absolute inset-0 bg-black/75 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-4xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90%]">
+                <div 
+                  className="absolute inset-0 bg-black/75 backdrop-blur-sm z-40 flex items-center justify-center p-4"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setActiveNodeId(null);
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-4xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90%]"
+                  >
                     
                     {/* Modal Header */}
                     <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
@@ -1680,22 +1726,6 @@ export default function WorkflowsPage() {
 
                       {/* Right Column: Node Settings form fields */}
                       <div className="flex-1 p-5 overflow-y-auto min-h-0 space-y-3.5">
-                        
-                        <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
-                          <div>
-                            <div className="text-[10px] font-bold text-zinc-300">Node Status</div>
-                            <div className="text-[8px] text-zinc-500">Deactivate to skip this step</div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="sr-only peer" 
-                              checked={!configIsDisabled}
-                              onChange={(e) => setConfigIsDisabled(!e.target.checked)}
-                            />
-                            <div className="w-7 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
-                          </label>
-                        </div>
 
                         <div>
                           <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Step Label</label>
