@@ -272,8 +272,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const storedActiveContactId = localStorage.getItem('whatsflow_active_contact_id');
       setActiveContactId(storedActiveContactId || 'c-1');
 
-      // Hardcode theme to dark mode permanently
-      setThemeState('dark');
+      const storedTheme = localStorage.getItem('whatsflow_theme');
+      setThemeState((storedTheme as 'light' | 'dark') || 'dark');
 
       setHasLoaded(true);
     }
@@ -338,10 +338,15 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const root = document.documentElement;
-      root.classList.remove('light');
-      root.classList.add('dark');
+      if (theme === 'light') {
+        root.classList.remove('dark');
+        root.classList.add('light');
+      } else {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
     }
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -803,11 +808,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const setTheme = (newTheme: 'light' | 'dark') => {
-    setThemeState('dark');
+    setThemeState(newTheme);
+    localStorage.setItem('whatsflow_theme', newTheme);
   };
 
   const toggleTheme = () => {
-    // Theme toggling is disabled. App is dark mode only.
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
   };
 
   return (
