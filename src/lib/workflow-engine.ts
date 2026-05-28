@@ -32,6 +32,7 @@ export interface WorkflowExecutionResult {
   triggerNodeId?: string;
   actionNodeId?: string;
   actionType?: string;
+  actionValue?: string;
   responseMessage?: {
     type: 'text' | 'template' | 'button' | 'image' | 'document' | 'flow';
     body: string;
@@ -279,6 +280,14 @@ export function executeWorkflow(
     responseMessage = {
       type: 'text',
       body: `[AI Reply]: "${targetActionNode.data.config?.prompt || 'Support Bot'}". Responding to: "${messageBody}"`
+    };
+  } else if (actionSubType === 'change_label') {
+    return {
+      triggered: true,
+      triggerNodeId: triggerNode.id,
+      actionNodeId: targetActionNode.id,
+      actionType: actionSubType,
+      actionValue: targetActionNode.data.config?.newLabel
     };
   } else {
     // Default text response for unhandled subtypes

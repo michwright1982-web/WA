@@ -143,31 +143,47 @@ export async function POST(request: Request) {
 
                 console.log('[ServerAutomation] Workflow result:', JSON.stringify(result, null, 2));
 
-                if (result.triggered && result.responseMessage && !isMock) {
-                  // Send the response via WhatsApp Cloud API immediately
-                  const sendResult = await sendWhatsAppMessage(
-                    acc.phoneNumberId,
-                    acc.accessToken,
-                    msg.from,
-                    result
-                  );
-                  console.log('[ServerAutomation] Send result:', sendResult);
+                if (result.triggered) {
+                  if (result.actionType === 'change_label') {
+                    const sysActionForUI = {
+                      id: `m-sys-action-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                      phoneNumber: incomingMessage.phoneNumber,
+                      senderName: 'System',
+                      body: 'CRM Label Update',
+                      type: 'system_action',
+                      direction: 'OUTGOING',
+                      timestamp: new Date().toISOString(),
+                      automationResponse: true,
+                      actionType: result.actionType,
+                      actionValue: result.actionValue
+                    };
+                    addToQueue(sysActionForUI);
+                  } else if (result.responseMessage) {
+                    if (!isMock) {
+                      const sendResult = await sendWhatsAppMessage(
+                        acc.phoneNumberId,
+                        acc.accessToken,
+                        msg.from,
+                        result
+                      );
+                      console.log('[ServerAutomation] Send result:', sendResult);
+                    } else {
+                      console.log('[ServerAutomation] Mock mode — workflow matched but no live API credentials configured.');
+                    }
 
-                  // Also queue the outgoing message for UI display
-                  const outgoingForUI = {
-                    id: `m-auto-server-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                    phoneNumber: incomingMessage.phoneNumber,
-                    senderName: 'WhatsFlow Bot',
-                    body: result.responseMessage.body,
-                    type: result.responseMessage.type || 'text',
-                    direction: 'OUTGOING',
-                    buttons: result.responseMessage.buttons,
-                    timestamp: new Date().toISOString(),
-                    automationResponse: true
-                  };
-                  addToQueue(outgoingForUI);
-                } else if (result.triggered && isMock) {
-                  console.log('[ServerAutomation] Mock mode — workflow matched but no live API credentials configured.');
+                    const outgoingForUI = {
+                      id: `m-auto-server-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                      phoneNumber: incomingMessage.phoneNumber,
+                      senderName: 'WhatsFlow Bot',
+                      body: result.responseMessage.body,
+                      type: result.responseMessage.type || 'text',
+                      direction: 'OUTGOING',
+                      buttons: result.responseMessage.buttons,
+                      timestamp: new Date().toISOString(),
+                      automationResponse: true
+                    };
+                    addToQueue(outgoingForUI);
+                  }
                 }
               } else {
                 console.log('[ServerAutomation] Automation disabled for contact:', senderNumber);

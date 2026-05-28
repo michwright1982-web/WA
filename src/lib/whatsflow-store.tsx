@@ -354,19 +354,23 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
                   const contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber);
                   if (contact) {
-                    const outMsg: Message = {
-                      id: item.id || `m-server-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                      accountId: activeAccountId || 'acc-1',
-                      contactId: contact.id,
-                      type: item.type || 'text',
-                      body: item.body,
-                      direction: 'OUTGOING',
-                      status: 'sent',
-                      timestamp: item.timestamp || new Date().toISOString(),
-                      buttons: item.buttons
-                    };
-                    if (!currentMessages.some(m => m.id === outMsg.id)) {
-                      currentMessages.push(outMsg);
+                    if (item.actionType === 'change_label') {
+                      contact.label = item.actionValue;
+                    } else {
+                      const outMsg: Message = {
+                        id: item.id || `m-server-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        accountId: activeAccountId || 'acc-1',
+                        contactId: contact.id,
+                        type: item.type || 'text',
+                        body: item.body,
+                        direction: 'OUTGOING',
+                        status: 'sent',
+                        timestamp: item.timestamp || new Date().toISOString(),
+                        buttons: item.buttons
+                      };
+                      if (!currentMessages.some(m => m.id === outMsg.id)) {
+                        currentMessages.push(outMsg);
+                      }
                     }
                   }
                   continue;

@@ -629,7 +629,7 @@ export default function ChatPage() {
                       )}
 
                       {msg.type !== 'document' && msg.type !== 'voice' && (
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
+                        <div className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
                           {msg.type === 'button' && !isOutgoing ? (
                             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
                               <span>🔘 Interactive Click:</span>
@@ -646,7 +646,7 @@ export default function ChatPage() {
                           ) : (
                             msg.body
                           )}
-                        </p>
+                        </div>
                       )}
 
                       {/* Interactive Buttons Preview */}
