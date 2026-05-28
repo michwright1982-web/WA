@@ -1991,52 +1991,8 @@ export default function WorkflowsPage() {
                           if (subType === 'send_flow') {
                             return (
                               <div className="space-y-4">
-                                <div className="grid grid-cols-3 gap-3">
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Header Text</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowHeader}
-                                      onChange={(e) => setConfigFlowHeader(e.target.value)}
-                                      placeholder="e.g. Welcome"
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Footer Text</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowFooter}
-                                      onChange={(e) => setConfigFlowFooter(e.target.value)}
-                                      placeholder="e.g. Team"
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Button CTA Text</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowCta}
-                                      onChange={(e) => setConfigFlowCta(e.target.value)}
-                                      placeholder="e.g. Fill Details"
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-
                                 <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Body Text Content</label>
-                                  <textarea
-                                    rows={2}
-                                    value={configFlowBody}
-                                    onChange={(e) => setConfigFlowBody(e.target.value)}
-                                    placeholder="Fill out your details to start! ✨"
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Select Synced WhatsApp Flow</label>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select Synced WhatsApp Flow</label>
                                   <div className="flex gap-2">
                                     <select
                                       value={configFlowId}
@@ -2048,7 +2004,7 @@ export default function WorkflowsPage() {
                                           setConfigNodeLabel(`Send ${matchedFlow.name}`);
                                         }
                                       }}
-                                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                                     >
                                       <option value="">-- Choose a Meta Flow --</option>
                                       {flows.map(f => (
@@ -2059,55 +2015,11 @@ export default function WorkflowsPage() {
                                       type="button"
                                       id="sync-flows-btn"
                                       onClick={handleSyncFlows}
-                                      className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                      className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-855 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                                     >
                                       <RefreshCw className="h-3.5 w-3.5" /> Sync Flows
                                     </button>
                                   </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Flow ID (Meta Platform)</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowId}
-                                      onChange={(e) => setConfigFlowId(e.target.value)}
-                                      placeholder="e.g. 775192158724649"
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Initial Screen ID</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowScreen}
-                                      onChange={(e) => setConfigFlowScreen(e.target.value)}
-                                      placeholder="e.g. QUESTION_ONE"
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Flow Token</label>
-                                    <input
-                                      type="text"
-                                      value={configFlowToken}
-                                      onChange={(e) => setConfigFlowToken(e.target.value)}
-                                      placeholder="AQAAAAA..."
-                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Dynamic Payload JSON</label>
-                                  <textarea
-                                    rows={3}
-                                    value={configFlowPayload}
-                                    onChange={(e) => setConfigFlowPayload(e.target.value)}
-                                    placeholder='{"product_name": "name"}'
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white font-mono resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                  />
                                 </div>
 
                                 <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
