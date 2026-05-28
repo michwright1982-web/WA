@@ -143,7 +143,7 @@ export default function ChatPage() {
   const [voiceTimer, setVoiceTimer] = useState<NodeJS.Timeout | null>(null);
 
   const activeContact = contacts.find(c => c.id === activeContactId) || contacts[0];
-  const chatMessages = messages.filter(m => m.contactId === activeContactId);
+  const chatMessages = activeContact ? messages.filter(m => m.contactId === activeContact.id) : [];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
