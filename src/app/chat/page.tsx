@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { useWhatsFlow } from '@/lib/whatsflow-store';
 import { 
@@ -330,115 +331,117 @@ export default function ChatPage() {
           
           {/* Active Contact Header */}
           <div className="h-14 px-6 border-b border-zinc-800/80 bg-zinc-950/20 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs overflow-hidden">
-                {activeContact?.profilePicUrl ? (
-                  <img src={activeContact.profilePicUrl} alt={activeContact?.name} className="h-full w-full object-cover rounded-full" />
-                ) : (
-                  activeContact?.name[0]
-                )}
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-zinc-200 block">{activeContact?.name}</span>
-                <span className="text-[9px] text-zinc-400 block">{activeContact?.phoneNumber}</span>
-              </div>
-            </div>
+            {activeContact ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs overflow-hidden">
+                    {activeContact.profilePicUrl ? (
+                      <img src={activeContact.profilePicUrl} alt={activeContact.name} className="h-full w-full object-cover rounded-full" />
+                    ) : (
+                      activeContact.name?.[0] || '?'
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-zinc-200 block">{activeContact.name}</span>
+                    <span className="text-[9px] text-zinc-400 block">{activeContact.phoneNumber}</span>
+                  </div>
+                </div>
 
-            {/* Automation Toggle & Quick Status Tags */}
-            <div className="flex items-center gap-4">
-              
-              {/* Automation Toggle Switch */}
-              <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-950/40 px-3 py-1 rounded-xl">
-                <span className="text-[9px] font-bold text-zinc-450 uppercase tracking-wider select-none">
-                  Automation Flow
-                </span>
-                <button
-                  onClick={() => {
-                    if (activeContact) {
-                      updateContact(activeContact.id, {
-                        automationEnabled: activeContact.automationEnabled === false ? true : false
-                      });
-                    }
-                  }}
-                  className={`relative inline-flex items-center h-4.5 w-8.5 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    activeContact?.automationEnabled !== false ? 'bg-emerald-500' : 'bg-zinc-800'
-                  }`}
-                  role="switch"
-                  aria-checked={activeContact?.automationEnabled !== false}
-                  title="Toggle Chatbot Auto-Response Automation"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      activeContact?.automationEnabled !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {activeContact?.label && (
-                  <span className="text-[9px] px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase">
-                    {activeContact.label}
-                  </span>
-                )}
-
-                {/* Lead Status Toggle */}
-                <button
-                  onClick={() => {
-                    if (!activeContact) return;
-                    const next = activeContact.leadStatus === 'qualified' ? 'not_qualified'
-                      : 'qualified';
-                    updateContact(activeContact.id, { leadStatus: next });
-                  }}
-                  className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase flex items-center gap-1 transition-all cursor-pointer ${
-                    activeContact?.leadStatus === 'qualified'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                      : activeContact?.leadStatus === 'not_qualified'
-                        ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
-                        : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
-                  }`}
-                  title="Click to cycle lead status"
-                >
-                  {activeContact?.leadStatus === 'qualified' ? <ShieldCheck className="h-3 w-3" /> : activeContact?.leadStatus === 'not_qualified' ? <ShieldX className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                  {activeContact?.leadStatus === 'qualified' ? 'Qualified' : activeContact?.leadStatus === 'not_qualified' ? 'Not Qualified' : 'New Lead'}
-                </button>
-
-                {/* Interaction Button */}
-                <button
-                  onClick={() => setShowInteractionModal(!showInteractionModal)}
-                  className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase flex items-center gap-1 transition-all cursor-pointer ${
-                    showInteractionModal
-                      ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
-                  }`}
-                  title="View & add interactions"
-                >
-                  <History className="h-3 w-3" /> Interactions
-                  {(activeContact?.interactions?.length || 0) > 0 && (
-                    <span className="ml-0.5 text-[8px] bg-indigo-500/20 text-indigo-300 px-1 rounded-full font-mono">
-                      {activeContact?.interactions?.length}
+                {/* Automation Toggle & Quick Status Tags */}
+                <div className="flex items-center gap-4">
+                  
+                  {/* Automation Toggle Switch */}
+                  <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-950/40 px-3 py-1 rounded-xl">
+                    <span className="text-[9px] font-bold text-zinc-450 uppercase tracking-wider select-none">
+                      Automation Flow
                     </span>
-                  )}
-                </button>
+                    <button
+                      onClick={() => {
+                        updateContact(activeContact.id, {
+                          automationEnabled: activeContact.automationEnabled === false ? true : false
+                        });
+                      }}
+                      className={`relative inline-flex items-center h-4.5 w-8.5 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        activeContact.automationEnabled !== false ? 'bg-emerald-500' : 'bg-zinc-800'
+                      }`}
+                      role="switch"
+                      aria-checked={activeContact.automationEnabled !== false}
+                      title="Toggle Chatbot Auto-Response Automation"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          activeContact.automationEnabled !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
 
-                {/* Delete Contact Button */}
-                <button
-                  onClick={() => {
-                    if (confirm(`Are you sure you want to delete "${activeContact.name}"? This will remove the contact and all their messages permanently.`)) {
-                      const contactId = activeContact.id;
-                      clearChat(contactId);
-                      deleteContact(contactId);
-                      setActiveContactId(contacts.find(c => c.id !== contactId)?.id || '');
-                    }
-                  }}
-                  className="text-[9px] px-2 py-0.5 rounded border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 hover:text-rose-400 font-bold uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm"
-                  title="Delete contact and all messages"
-                >
-                  <Trash2 className="h-3 w-3 text-rose-400" /> Delete Contact
-                </button>
-              </div>
-            </div>
+                  <div className="flex items-center gap-2">
+                    {activeContact.label && (
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase">
+                        {activeContact.label}
+                      </span>
+                    )}
+
+                    {/* Lead Status Toggle */}
+                    <button
+                      onClick={() => {
+                        const next = activeContact.leadStatus === 'qualified' ? 'not_qualified' : 'qualified';
+                        updateContact(activeContact.id, { leadStatus: next });
+                      }}
+                      className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase flex items-center gap-1 transition-all cursor-pointer ${
+                        activeContact.leadStatus === 'qualified'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                          : activeContact.leadStatus === 'not_qualified'
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
+                            : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+                      }`}
+                      title="Click to cycle lead status"
+                    >
+                      {activeContact.leadStatus === 'qualified' ? <ShieldCheck className="h-3 w-3" /> : activeContact.leadStatus === 'not_qualified' ? <ShieldX className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                      {activeContact.leadStatus === 'qualified' ? 'Qualified' : activeContact.leadStatus === 'not_qualified' ? 'Not Qualified' : 'New Lead'}
+                    </button>
+
+                    {/* Interaction Button */}
+                    <button
+                      onClick={() => setShowInteractionModal(!showInteractionModal)}
+                      className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase flex items-center gap-1 transition-all cursor-pointer ${
+                        showInteractionModal
+                          ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                          : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200'
+                      }`}
+                      title="View & add interactions"
+                    >
+                      <History className="h-3 w-3" /> Interactions
+                      {(activeContact.interactions?.length || 0) > 0 && (
+                        <span className="ml-0.5 text-[8px] bg-indigo-500/20 text-indigo-300 px-1 rounded-full font-mono">
+                          {activeContact.interactions?.length}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Delete Contact Button */}
+                    <button
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete "${activeContact.name}"? This will remove the contact and all their messages permanently.`)) {
+                          const contactId = activeContact.id;
+                          clearChat(contactId);
+                          deleteContact(contactId);
+                          setActiveContactId(contacts.find(c => c.id !== contactId)?.id || '');
+                        }
+                      }}
+                      className="text-[9px] px-2 py-0.5 rounded border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 hover:text-rose-400 font-bold uppercase flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                      title="Delete contact and all messages"
+                    >
+                      <Trash2 className="h-3 w-3 text-rose-400" /> Delete Contact
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <span className="text-xs text-zinc-550 italic">No contact selected</span>
+            )}
           </div>
 
           {/* Interaction Modal Popup */}
@@ -536,17 +539,34 @@ export default function ChatPage() {
           {/* Dialog Log Bubble Canvas */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-950/40">
             {chatMessages.length === 0 ? (
-              <div className="h-full flex flex-col justify-center items-center text-center space-y-4 select-none">
-                <div className="h-12 w-12 rounded-full bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-550 shadow-md animate-pulse">
-                  <MessageSquare className="h-5 w-5" />
+              contacts.length === 0 ? (
+                <Link 
+                  href="/contacts"
+                  className="h-full flex flex-col justify-center items-center text-center space-y-4 select-none hover:bg-zinc-800/10 transition-colors duration-200 cursor-pointer p-6 rounded-2xl border border-transparent hover:border-zinc-800/50"
+                >
+                  <div className="h-12 w-12 rounded-full bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-indigo-400 shadow-md animate-pulse">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold text-zinc-300">Empty CRM Database</h3>
+                    <p className="text-[10px] text-zinc-400 max-w-[220px] mx-auto leading-normal font-semibold">
+                      Add a CRM contact to continue
+                    </p>
+                  </div>
+                </Link>
+              ) : (
+                <div className="h-full flex flex-col justify-center items-center text-center space-y-4 select-none">
+                  <div className="h-12 w-12 rounded-full bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-550 shadow-md animate-pulse">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold text-zinc-300">Empty Chat Inbox</h3>
+                    <p className="text-[10px] text-zinc-500 max-w-[220px] mx-auto leading-normal">
+                      No active chat history found for this contact. Send your first message below or select templates to begin.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-xs font-bold text-zinc-300">Empty Chat Inbox</h3>
-                  <p className="text-[10px] text-zinc-500 max-w-[220px] mx-auto leading-normal">
-                    No active chat history found for this contact. Send your first message below or select templates to begin.
-                  </p>
-                </div>
-              </div>
+              )
             ) : (
               chatMessages.map((msg, index) => {
                 const isOutgoing = msg.direction === 'OUTGOING';
@@ -667,7 +687,7 @@ export default function ChatPage() {
                         </span>
                         {isOutgoing && (
                           msg.status === 'failed' ? <span className="text-rose-500 font-bold ml-1">Error sending message</span> :
-                          msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5]" /> : <Check className="h-3 w-3" />
+                          msg.status === 'read' ? <CheckCheck className="h-3 w-3 stroke-[2.5] text-sky-400" /> : <Check className="h-3 w-3" />
                         )}
                       </div>
 
@@ -691,17 +711,23 @@ export default function ChatPage() {
                   setShowTmplSelect(false);
                   setShowBtnModal(false);
                 }}
-                className="text-xs flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
+                disabled={contacts.length === 0}
+                className={`text-xs flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors ${
+                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed hover:border-zinc-800 hover:text-zinc-400' : 'hover:border-zinc-700'
+                }`}
               >
                 <FileText className="h-3.5 w-3.5 text-indigo-400" /> Share Document
               </button>
               <button 
                 type="button"
                 onClick={handleToggleVoiceRecording}
+                disabled={contacts.length === 0}
                 className={`text-xs flex items-center gap-1.5 px-3 py-1 border rounded-lg transition-colors ${
-                  isRecordingVoice 
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-450 hover:bg-rose-500/20' 
-                    : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                  contacts.length === 0 
+                    ? 'opacity-50 cursor-not-allowed bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:border-zinc-800 hover:text-zinc-400' 
+                    : isRecordingVoice 
+                      ? 'bg-rose-500/10 border-rose-500/20 text-rose-450 hover:bg-rose-500/20' 
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 <Mic className={`h-3.5 w-3.5 ${isRecordingVoice ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`} /> 
@@ -730,7 +756,7 @@ export default function ChatPage() {
                       className="w-full text-left p-2 rounded hover:bg-zinc-800 text-xs transition-colors flex justify-between items-center"
                     >
                       <span className="font-semibold text-zinc-200 truncate">{tmpl.name}</span>
-                      <span className="text-[8px] bg-emerald-500/10 text-emerald-400 px-1 rounded-sm uppercase">{tmpl.category}</span>
+                      <span className="text-[8px] bg-emerald-500/10 text-emerald-450 px-1 rounded-sm uppercase">{tmpl.category}</span>
                     </button>
                   ))}
                 </div>
@@ -765,7 +791,7 @@ export default function ChatPage() {
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
-                  <button onClick={() => setShowBtnModal(false)} className="text-[10px] text-zinc-400">Cancel</button>
+                  <button onClick={() => setShowBtnModal(false)} className="text-[10px] text-zinc-450">Cancel</button>
                   <button onClick={handleSendButtons} className="text-[10px] bg-white text-black px-2 py-1 rounded font-bold">Send</button>
                 </div>
               </div>
@@ -808,14 +834,20 @@ export default function ChatPage() {
             <form onSubmit={handleSendText} className="flex gap-2">
               <input
                 type="text"
-                placeholder="Type your WhatsApp message..."
+                placeholder={contacts.length === 0 ? "No contacts in CRM to message..." : "Type your WhatsApp message..."}
                 value={typedMessage}
                 onChange={(e) => setTypedMessage(e.target.value)}
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
+                disabled={contacts.length === 0}
+                className={`flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs text-zinc-100 focus:outline-none transition-colors ${
+                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed focus:border-zinc-800' : 'focus:border-zinc-700'
+                }`}
               />
               <button 
                 type="submit"
-                className="h-10 w-10 bg-white text-black hover:bg-zinc-200 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md"
+                disabled={contacts.length === 0}
+                className={`h-10 w-10 bg-white text-black rounded-xl flex items-center justify-center transition-all shadow-md ${
+                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed bg-zinc-400 text-zinc-650' : 'hover:bg-zinc-200 cursor-pointer'
+                }`}
               >
                 <Send className="h-4.5 w-4.5 stroke-[2.2]" />
               </button>
