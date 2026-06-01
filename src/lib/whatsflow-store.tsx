@@ -70,6 +70,7 @@ export interface WhatsAppFlow {
   name: string;
   status: string;
   categories: string[];
+  fields?: string[];
   previewUrl?: string;
   createdAt: string;
 }

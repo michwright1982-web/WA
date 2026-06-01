@@ -11,7 +11,11 @@ import {
   TrendingUp,
   Sparkles, 
   Smartphone, 
-  Cpu 
+  Cpu,
+  Users,
+  ShieldCheck,
+  UserX,
+  UserPlus
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -23,6 +27,12 @@ export default function DashboardPage() {
   const readMessages = messages.filter(m => m.status === 'read').length;
   const readRate = totalSent > 0 ? Math.round((readMessages / totalSent) * 100) : 0;
   const deliveryRate = totalSent > 0 ? Math.round((messages.filter(m => m.status === 'delivered').length / totalSent) * 100) : 0;
+
+  // Real-time CRM Contact statistics
+  const totalContacts = contacts.length;
+  const qualifiedContacts = contacts.filter(c => c.leadStatus === 'qualified').length;
+  const unqualifiedContacts = contacts.filter(c => c.leadStatus === 'not_qualified').length;
+  const newContacts = contacts.filter(c => c.leadStatus === 'new').length;
 
   return (
     <DashboardShell>
@@ -72,6 +82,31 @@ export default function DashboardPage() {
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
                     <span className="text-[10px] font-semibold text-emerald-400">{stat.change}</span>
                   </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* CRM Contacts Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            { label: 'Total Contacts', value: totalContacts, icon: Users, color: 'text-indigo-400' },
+            { label: 'Qualified Leads', value: qualifiedContacts, icon: ShieldCheck, color: 'text-emerald-400' },
+            { label: 'Unqualified', value: unqualifiedContacts, icon: UserX, color: 'text-rose-400' },
+            { label: 'New Leads', value: newContacts, icon: UserPlus, color: 'text-amber-400' },
+          ].map((stat, idx) => {
+            const Icon = stat.icon;
+            return (
+              <div key={idx} className="glow-card bg-zinc-900/40 rounded-xl p-5 backdrop-blur-md flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider leading-tight">{stat.label}</span>
+                  <div className={`h-7 w-7 rounded-lg bg-zinc-800/80 flex items-center justify-center shrink-0 ml-2 ${stat.color}`}>
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-2xl font-bold text-zinc-100">{stat.value}</span>
                 </div>
               </div>
             );

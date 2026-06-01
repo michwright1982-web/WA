@@ -263,21 +263,20 @@ export default function ChatPage() {
 
   return (
     <DashboardShell>
-      <div className="h-[calc(100vh-140px)] border border-zinc-800 rounded-2xl overflow-hidden flex bg-zinc-900/20 backdrop-blur-md">
+      <div className="h-[calc(100vh-140px)] border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex bg-white/50 dark:bg-zinc-900/20 backdrop-blur-md">
         
         {/* Left Side: Contact List panel */}
-        <div className="w-80 border-r border-zinc-800 flex flex-col bg-zinc-950/40">
-          
+        <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50/50 dark:bg-zinc-950/40">
           {/* Search bar */}
-          <div className="p-4 border-b border-zinc-800/80">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-transparent">
+            <div className="flex items-center w-full bg-[#f0f2f5] dark:bg-zinc-900 rounded-lg px-3 h-[30px] transition-colors">
+              <Search className="h-4 w-4 text-[#54656f] dark:text-zinc-500 shrink-0" />
               <input
                 type="text"
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
+                className="w-full bg-transparent border-none focus:outline-none text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-[#54656f] dark:placeholder:text-zinc-500 ml-2 h-full flex-1"
               />
             </div>
           </div>
@@ -612,11 +611,25 @@ export default function ChatPage() {
                 const isOutgoing = msg.direction === 'OUTGOING';
                 return (
                   <div key={`${msg.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3`}>
-                    <div className={`max-w-[70%] p-3.5 shadow-lg transition-all duration-200 ${
+                    <div className={`relative max-w-[70%] px-3.5 pt-2 pb-1.5 text-[15px] ${
                       isOutgoing 
-                        ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none shadow-[0_3px_12px_rgba(16,185,129,0.15)]' 
-                        : 'bg-white text-black rounded-2xl rounded-tl-none shadow-[0_3px_12px_rgba(255,255,255,0.08)]'
+                        ? 'bg-[#25D366] text-white rounded-2xl rounded-br-none' 
+                        : 'bg-[#E9E9EB] text-black rounded-2xl rounded-bl-none'
                     }`} >
+                      
+                      {/* Left iOS style tail */}
+                      {!isOutgoing && (
+                        <svg viewBox="0 0 12 19" width="12" height="19" className="absolute bottom-0 -left-[10px] text-[#E9E9EB] fill-current pointer-events-none block">
+                          <path d="M12 19H0C0 19 9 19 12 0V19Z" />
+                        </svg>
+                      )}
+                      
+                      {/* Right iOS style tail */}
+                      {isOutgoing && (
+                        <svg viewBox="0 0 12 19" width="12" height="19" className="absolute bottom-0 -right-[10px] text-[#25D366] fill-current pointer-events-none block">
+                          <path d="M0 19H12C12 19 3 19 0 0V19Z" />
+                        </svg>
+                      )}
                       
                       {/* Media image render */}
                       {msg.type === 'image' && msg.mediaUrl && (
@@ -742,8 +755,8 @@ export default function ChatPage() {
                       )}
 
                       {/* Timestamp & Tick Delivery Status */}
-                      <div className="mt-2 flex items-center justify-end gap-1 text-[9px]">
-                        <span className={`opacity-65 ${isOutgoing ? 'text-emerald-200' : 'text-zinc-500'}`}>
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[9px] mb-0.5">
+                        <span className={`opacity-70 ${isOutgoing ? 'text-emerald-50' : 'text-zinc-500'}`}>
                           {isMounted ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                         {isOutgoing && (
@@ -795,7 +808,9 @@ export default function ChatPage() {
 
                   {/* Attachment Popup Menu */}
                   {showAttachMenu && (
-                    <div className="absolute bottom-14 left-0 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-3 z-50 flex flex-col gap-3 min-w-[200px] animate-in fade-in slide-in-from-bottom-2">
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowAttachMenu(false)} />
+                      <div className="absolute bottom-14 left-0 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-3 z-50 flex flex-col gap-3 min-w-[200px] animate-in fade-in slide-in-from-bottom-2">
                       
                       {/* Document Button */}
                       <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-50 dark:hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
@@ -832,7 +847,8 @@ export default function ChatPage() {
                         />
                       </label>
                       
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </>

@@ -104,7 +104,8 @@ export default function FlowsPage() {
       id: flowIdInput.trim(),
       name: flowName.trim(),
       status: flowStatus,
-      categories: [flowCategory]
+      categories: [flowCategory],
+      fields: simulatorFields
     });
 
     setShowAddModal(false);
@@ -195,17 +196,7 @@ export default function FlowsPage() {
           </div>
         </div>
 
-        {/* Search filter utility bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-          <input
-            type="text"
-            placeholder="Search synced flows by name or ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-900/40 border border-zinc-850 rounded-xl text-xs text-white focus:outline-none focus:border-zinc-700 transition-colors"
-          />
-        </div>
+
 
         {/* Flows list grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -322,27 +313,18 @@ export default function FlowsPage() {
                       This native WhatsApp Flow form collects customer input directly inside the message window.
                     </div>
 
-                    {/* Mock Input Fields */}
+                    {/* Dynamic Input Fields */}
                     <div className="space-y-2.5 pt-2">
-                      <div>
-                        <span className="text-[9px] text-zinc-500 block mb-1">Full Name</span>
-                        <div className="bg-zinc-900 border border-zinc-850 rounded p-1.5 text-[10px] text-zinc-400 font-mono">
-                          Jane Doe
+                      {(selectedPreviewFlow.fields || ['Full Name', 'Business Email', 'Requested Category']).map((field: string, idx: number) => (
+                        <div key={idx}>
+                          <span className="text-[9px] text-zinc-500 block mb-1">{field}</span>
+                          <input 
+                            type="text"
+                            placeholder={`Enter ${field.toLowerCase()}...`}
+                            className="w-full bg-zinc-900 border border-zinc-850 rounded p-1.5 text-[10px] text-zinc-300 focus:outline-none focus:border-zinc-700 transition-colors"
+                          />
                         </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-500 block mb-1">Business Email</span>
-                        <div className="bg-zinc-900 border border-zinc-850 rounded p-1.5 text-[10px] text-zinc-400 font-mono">
-                          jane@example.com
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-500 block mb-1">Requested Category</span>
-                        <div className="bg-zinc-900 border border-zinc-850 rounded p-1.5 text-[10px] text-zinc-300 font-semibold flex items-center justify-between">
-                          <span>{selectedPreviewFlow.categories?.[0] || 'UTILITY'}</span>
-                          <ChevronRight className="h-3 w-3 text-zinc-500" />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
