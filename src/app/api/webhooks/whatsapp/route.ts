@@ -68,6 +68,9 @@ export async function POST(request: Request) {
           console.log('Processed message status update:', value.statuses[0]);
         }
 
+        const metadata = value.metadata || {};
+        const incomingPhoneNumberId = metadata.phone_number_id;
+
         if (value.messages && value.messages.length > 0) {
           for (const msg of value.messages) {
             const contactInfo = value.contacts?.find((c: any) => c.wa_id === msg.from) || value.contacts?.[0];
@@ -121,8 +124,24 @@ export async function POST(request: Request) {
 
             // 2. SERVER-SIDE WORKFLOW EXECUTION — runs immediately, no polling delay
             const config = global.__whatsflow_automation_config;
-            if (config?.workflow && config?.account) {
-              const acc = config.account;
+            
+            // Dynamically resolve target account and workflow based on incoming phone number ID
+            let targetAccount = config?.account;
+            if (config?.accounts && config.accounts.length > 0 && incomingPhoneNumberId) {
+              const matchedAccount = config.accounts.find(a => a.phoneNumberId === incomingPhoneNumberId);
+              if (matchedAccount) targetAccount = matchedAccount;
+            }
+
+            // Assume the active workflow applies globally, or we could look up a specific workflow per account if supported
+            let targetWorkflow = config?.workflow;
+            if (config?.workflows && config.workflows.length > 0) {
+               // For now, use the globally active workflow if no specific per-account routing is defined
+               const activeWf = config.workflows.find(w => w.status === 'ACTIVE');
+               if (activeWf) targetWorkflow = activeWf;
+            }
+
+            if (targetWorkflow && targetAccount) {
+              const acc = targetAccount;
               const isMock = !acc || 
                 acc.accessToken === 'EAAGb...' || 
                 acc.accessToken.length < 20 ||
@@ -130,14 +149,14 @@ export async function POST(request: Request) {
 
               // Check if automation is enabled for this contact
               const senderNumber = msg.from.replace(/\D/g, '');
-              const contact = config.contacts?.find((c: any) => c.phoneNumber.replace(/\D/g, '') === senderNumber);
+              const contact = config?.contacts?.find((c: any) => c.phoneNumber.replace(/\D/g, '') === senderNumber && (!c.accountId || c.accountId === acc.id));
               const isAutomationEnabled = !contact || contact.automationEnabled !== false;
 
               if (isAutomationEnabled) {
                 console.log('[ServerAutomation] Running workflow for:', messageBody, 'type:', msgType);
                 
                 const results = executeWorkflow(
-                  config.workflow,
+                  targetWorkflow,
                   {
                     ...incomingMessage,
                     contactLabel: contact?.label || 'unlabeled'

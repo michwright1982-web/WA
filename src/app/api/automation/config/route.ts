@@ -6,11 +6,12 @@ export const dynamic = 'force-dynamic';
 // On Vercel, this persists as long as the Lambda instance is warm.
 // Multiple API routes in the same deployment share this global.
 declare global {
-  // eslint-disable-next-line no-var
   var __whatsflow_automation_config: {
     workflow: any | null;
+    workflows?: any[];
     templates: any[];
     account: any | null;
+    accounts?: any[];
     contacts: any[];
   } | undefined;
 }
@@ -18,8 +19,10 @@ declare global {
 if (!global.__whatsflow_automation_config) {
   global.__whatsflow_automation_config = {
     workflow: null,
+    workflows: [],
     templates: [],
     account: null,
+    accounts: [],
     contacts: []
   };
 }
@@ -32,11 +35,17 @@ export async function POST(request: Request) {
     if (body.workflow) {
       global.__whatsflow_automation_config!.workflow = body.workflow;
     }
+    if (body.workflows) {
+      global.__whatsflow_automation_config!.workflows = body.workflows;
+    }
     if (body.templates) {
       global.__whatsflow_automation_config!.templates = body.templates;
     }
     if (body.account) {
       global.__whatsflow_automation_config!.account = body.account;
+    }
+    if (body.accounts) {
+      global.__whatsflow_automation_config!.accounts = body.accounts;
     }
     if (body.contacts) {
       global.__whatsflow_automation_config!.contacts = body.contacts;
