@@ -429,6 +429,29 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   if (contact) {
                     if (item.actionType === 'change_label') {
                       contact.label = item.actionValue;
+                    } else if (item.actionType === 'update_crm') {
+                      const fields = item.crmFields || [];
+                      for (const field of fields) {
+                        const key = field.key;
+                        let val = field.value || '';
+                        
+                        val = val
+                          .replace(/\{\{msg\.body\}\}/g, item.body || '')
+                          .replace(/\{\{msg\.senderName\}\}/g, contact.name || '')
+                          .replace(/\{\{msg\.sender\}\}/g, contact.phoneNumber || '');
+
+                        if (key === 'name') {
+                          contact.name = val;
+                        } else if (key === 'email') {
+                          contact.email = val;
+                        } else if (key === 'label') {
+                          contact.label = val;
+                        } else if (key === 'leadStatus') {
+                          contact.leadStatus = val as any;
+                        } else if (key) {
+                          (contact as any)[key] = val;
+                        }
+                      }
                     } else {
                       const outMsg: Message = {
                         id: item.id || `m-server-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

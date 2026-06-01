@@ -288,6 +288,21 @@ export async function POST(request: Request) {
                         actionValue: result.actionValue
                       };
                       addToQueue(sysActionForUI);
+                    } else if (result.actionType === 'update_crm') {
+                      const sysActionForUI = {
+                        id: `m-sys-action-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                        accountId: targetAccountId,
+                        phoneNumber: incomingMessage.phoneNumber,
+                        senderName: 'System',
+                        body: 'CRM Update',
+                        type: 'system_action',
+                        direction: 'OUTGOING',
+                        timestamp: new Date().toISOString(),
+                        automationResponse: true,
+                        actionType: result.actionType,
+                        crmFields: result.crmFields || []
+                      };
+                      addToQueue(sysActionForUI);
                     } else if (result.responseMessage) {
                       // Perform live AI API invocation if subtype is ai_assistant
                       if (result.actionType === 'ai_assistant') {

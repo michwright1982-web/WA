@@ -54,6 +54,7 @@ export interface WorkflowExecutionResult {
     flowFooter?: string;
     flowPayload?: string;
   };
+  crmFields?: Array<{ key: string; value: string; isCustom?: boolean }>;
   error?: string;
 }
 
@@ -351,6 +352,14 @@ export function executeWorkflow(
         actionNodeId: targetActionNode.id,
         actionType: actionSubType,
         actionValue: targetActionNode.data.config?.newLabel
+      };
+    } else if (actionSubType === 'update_crm') {
+      return {
+        triggered: true,
+        triggerNodeId: triggerNode.id,
+        actionNodeId: targetActionNode.id,
+        actionType: actionSubType,
+        crmFields: targetActionNode.data.config?.crmFields || []
       };
     } else {
       // Default text response for unhandled subtypes

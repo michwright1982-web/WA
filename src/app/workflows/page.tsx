@@ -62,6 +62,7 @@ const nodeLibrary = {
     { subType: 'ai_assistant', label: '🟢 OpenAI Auto-Reply', desc: 'Generates smart answers using OpenAI GPT-4.', defaultLabel: 'AI Auto-Response', defaultDesc: 'OpenAI GPT-4 Completion Integrator' },
     { subType: 'http_call', label: '🟢 External API Hook', desc: 'Makes custom HTTP POST/GET request to endpoints.', defaultLabel: 'HTTP Webhook Call', defaultDesc: 'Trigger third-party integration webhook' },
     { subType: 'change_label', label: '🟢 Change Contact Label', desc: 'Updates the CRM label for the contact.', defaultLabel: 'Change Contact Label', defaultDesc: 'Modify contact label status' },
+    { subType: 'update_crm', label: '🟢 Update in CRM', desc: 'Updates contact fields or dynamic custom fields in the CRM.', defaultLabel: 'Update in CRM', defaultDesc: 'Update fields or custom properties in CRM' },
     { subType: 'wait_time', label: '⏳ Wait / Delay Timer', desc: 'Pauses step execution for a custom time duration.', defaultLabel: 'Wait / Delay Timer', defaultDesc: 'Pause execution before next step' },
   ]
 };
@@ -95,6 +96,7 @@ const getNodeIcon = (subType: string, type: string) => {
     case 'ai_assistant': return <Bot className={props.className} />;
     case 'http_call': return <Zap className={props.className} />;
     case 'change_label': return <Tag className={props.className} />;
+    case 'update_crm': return <Database className={props.className} />;
     case 'wait_time': return <Clock className={props.className} />;
     default:
       if (type === 'triggerNode') return <Zap {...props} className="text-yellow-500" />;
@@ -697,6 +699,7 @@ export default function WorkflowsPage() {
   const [configFlowToken, setConfigFlowToken] = useState('');
   const [configFlowPayload, setConfigFlowPayload] = useState('');
   const [configNewLabel, setConfigNewLabel] = useState('');
+  const [configCrmFields, setConfigCrmFields] = useState<Array<{ key: string; value: string; isCustom?: boolean }>>([]);
   const [searchNodeLibraryQuery, setSearchNodeLibraryQuery] = useState('');
   
   // Unified send message config state
@@ -792,6 +795,7 @@ export default function WorkflowsPage() {
     setConfigFlowToken(c.flowToken || '');
     setConfigFlowPayload(c.flowPayload || '{}');
     setConfigNewLabel(c.newLabel || 'new');
+    setConfigCrmFields(c.crmFields || []);
     setConfigSendOption(c.sendOption || 'message');
     setConfigMessageFormat(c.messageFormat || 'text');
     setConfigIsDisabled(c.isDisabled || false);
@@ -851,6 +855,7 @@ export default function WorkflowsPage() {
               flowToken: configFlowToken,
               flowPayload: configFlowPayload,
               newLabel: configNewLabel,
+              crmFields: configCrmFields,
               sendOption: configSendOption,
               messageFormat: configMessageFormat,
               isDisabled: configIsDisabled,
@@ -1542,6 +1547,11 @@ export default function WorkflowsPage() {
                              Assign: "{node.data.config.newLabel}"
                            </div>
                          )}
+                         {node.data.config?.subType === 'update_crm' && node.data.config?.crmFields && (
+                            <div className="mt-2 text-[9px] bg-emerald-950/40 border border-emerald-500/30 rounded px-1.5 py-0.5 inline-block text-emerald-450 font-bold font-mono">
+                              Update: {node.data.config.crmFields.length} field(s)
+                            </div>
+                          )}
                       </>
                     )}
                   </div>
@@ -2427,6 +2437,127 @@ export default function WorkflowsPage() {
                                     />
                                   </div>
                                   <p className="text-[8px] text-zinc-500 mt-1">Select from dynamic CRM contact labels, or type a custom tag to assign.</p>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if (subType === 'update_crm') {
+                            return (
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block">CRM Fields Mappings</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfigCrmFields([...configCrmFields, { key: 'name', value: '', isCustom: false }])}
+                                    className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 rounded px-2 py-1 transition-all cursor-pointer"
+                                  >
+                                    <Plus className="h-2.5 w-2.5" /> ADD FIELD
+                                  </button>
+                                </div>
+
+                                {configCrmFields.length === 0 ? (
+                                  <div className="border border-dashed border-zinc-800 rounded-xl p-6 text-center">
+                                    <p className="text-[10px] text-zinc-500">No CRM fields mapped. Click "ADD FIELD" to update standard or custom properties.</p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                                    {configCrmFields.map((field, idx) => {
+                                      const isCustomType = field.isCustom;
+                                      return (
+                                        <div key={idx} className="bg-zinc-950 border border-zinc-900 rounded-xl p-3 space-y-2 relative animate-in fade-in slide-in-from-top-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => setConfigCrmFields(configCrmFields.filter((_, i) => i !== idx))}
+                                            className="absolute top-2 right-2 text-zinc-500 hover:text-rose-400 transition-colors p-1"
+                                            title="Remove Field Mapping"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+
+                                          <div className="grid grid-cols-2 gap-2 pr-5">
+                                            <div>
+                                              <label className="text-[8px] text-zinc-500 block mb-0.5">Field Type</label>
+                                              <select
+                                                value={isCustomType ? 'custom' : field.key}
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  const isCust = val === 'custom';
+                                                  const updated = [...configCrmFields];
+                                                  updated[idx] = { ...updated[idx], key: isCust ? 'custom_field' : val, isCustom: isCust };
+                                                  setConfigCrmFields(updated);
+                                                }}
+                                                className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                              >
+                                                <option value="name">Name (Standard)</option>
+                                                <option value="email">Email (Standard)</option>
+                                                <option value="label">Label (Standard)</option>
+                                                <option value="leadStatus">Lead Status (Standard)</option>
+                                                <option value="custom">Custom Field...</option>
+                                              </select>
+                                            </div>
+
+                                            {isCustomType && (
+                                              <div>
+                                                <label className="text-[8px] text-zinc-500 block mb-0.5">Custom Field Name</label>
+                                                <input
+                                                  type="text"
+                                                  placeholder="e.g. company_size"
+                                                  value={field.key}
+                                                  onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+                                                    const updated = [...configCrmFields];
+                                                    updated[idx] = { ...updated[idx], key: val };
+                                                    setConfigCrmFields(updated);
+                                                  }}
+                                                  className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          <div>
+                                            <label className="text-[8px] text-zinc-500 block mb-0.5">Value (Supports variables)</label>
+                                            {field.key === 'leadStatus' && !isCustomType ? (
+                                              <select
+                                                value={field.value}
+                                                onChange={(e) => {
+                                                  const updated = [...configCrmFields];
+                                                  updated[idx] = { ...updated[idx], value: e.target.value };
+                                                  setConfigCrmFields(updated);
+                                                }}
+                                                className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                              >
+                                                <option value="">-- Choose Status --</option>
+                                                <option value="new">New</option>
+                                                <option value="qualified">Qualified</option>
+                                                <option value="not_qualified">Not Qualified</option>
+                                              </select>
+                                            ) : (
+                                              <input
+                                                type="text"
+                                                placeholder="e.g. {{msg.body}}"
+                                                value={field.value}
+                                                onChange={(e) => {
+                                                  const updated = [...configCrmFields];
+                                                  updated[idx] = { ...updated[idx], value: e.target.value };
+                                                  setConfigCrmFields(updated);
+                                                }}
+                                                className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                              />
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                <div className="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 text-[9px] text-zinc-400 space-y-1 select-none">
+                                  <span className="font-bold text-indigo-400 uppercase block mb-1">💡 Supported Variable Tokens</span>
+                                  <span className="block"><code className="bg-zinc-950 px-1 rounded border border-zinc-800 text-indigo-300">{"{{msg.body}}"}</code> - Raw customer response text</span>
+                                  <span className="block"><code className="bg-zinc-950 px-1 rounded border border-zinc-800 text-indigo-300">{"{{msg.senderName}}"}</code> - WhatsApp Profile Name</span>
+                                  <span className="block"><code className="bg-zinc-950 px-1 rounded border border-zinc-800 text-indigo-300">{"{{msg.sender}}"}</code> - Customer Phone number</span>
                                 </div>
                               </div>
                             );
