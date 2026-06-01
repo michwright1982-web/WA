@@ -109,17 +109,24 @@ export default function WorkflowsPage() {
   const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId, contacts } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState('');
 
-  // Restore active workflow selection from localStorage
+  // Restore active workflow selection from localStorage, but only if it belongs to the current account's workflows
   useEffect(() => {
-    if (typeof window !== 'undefined' && workflows.length > 0 && !selectedFlowId) {
+    if (typeof window !== 'undefined') {
       const persisted = localStorage.getItem('whatsflow_active_workflow_id');
-      if (persisted && workflows.some(w => w.id === persisted)) {
-        setSelectedFlowId(persisted);
+      if (workflows.length > 0) {
+        if (persisted && workflows.some(w => w.id === persisted)) {
+          setSelectedFlowId(persisted);
+        } else {
+          // The persisted workflow doesn't belong to the current account — pick the first available
+          setSelectedFlowId(workflows[0].id);
+        }
       } else {
-        setSelectedFlowId(workflows[0].id);
+        // No workflows for this account — clear the selection
+        setSelectedFlowId('');
       }
     }
-  }, [workflows, selectedFlowId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflows.map(w => w.id).join(',')]);
 
   // Persist active workflow selection to localStorage
   useEffect(() => {
@@ -975,6 +982,41 @@ export default function WorkflowsPage() {
         onChange={handleFileImport}
         className="hidden"
       />
+      {workflows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-120px)] gap-6 text-center">
+          <div className="h-20 w-20 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+            <GitFork className="h-9 w-9 text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-zinc-100 mb-2">No Workflows Yet</h2>
+            <p className="text-zinc-500 text-sm max-w-xs">This connection line has no automations. Create your first workflow to start automating responses for this account.</p>
+          </div>
+          <button
+            onClick={() => {
+              const name = prompt('Enter a name for your first workflow:', 'My First Automation');
+              if (name && name.trim() !== '') {
+                const newWf = addWorkflow({
+                  name: name.trim(),
+                  status: 'INACTIVE',
+                  nodes: [
+                    {
+                      id: '1',
+                      type: 'triggerNode',
+                      position: { x: 150, y: 200 },
+                      data: { label: 'Incoming Message', description: 'Triggers when a message is received' }
+                    }
+                  ],
+                  edges: []
+                });
+                setSelectedFlowId(newWf.id);
+              }
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all text-sm cursor-pointer"
+          >
+            <Plus className="h-4 w-4" /> Create First Workflow
+          </button>
+        </div>
+      ) : (
       <div className="space-y-4 w-full h-[calc(100vh-64px)] flex flex-col max-w-none -m-8 p-6 bg-zinc-950/20 relative overflow-hidden">
         
         {/* Top Control Bar */}
@@ -2659,6 +2701,7 @@ export default function WorkflowsPage() {
         </div>
 
       </div>
+      )}
     </DashboardShell>
   );
 }
