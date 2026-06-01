@@ -417,17 +417,20 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               let currentMessages = [...prevMessages];
 
               for (const item of incoming) {
+                // Determine which account this item belongs to (stamped by the webhook server)
+                const itemAccountId: string = item.accountId || 'acc-1';
+
                 // Check if this is a server-side automation response (outgoing)
                 if (item.direction === 'OUTGOING' && item.automationResponse) {
                   const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
-                  const contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber && (!c.accountId || c.accountId === activeAccountId));
+                  const contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber && c.accountId === itemAccountId);
                   if (contact) {
                     if (item.actionType === 'change_label') {
                       contact.label = item.actionValue;
                     } else {
                       const outMsg: Message = {
                         id: item.id || `m-server-auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        accountId: activeAccountId || 'acc-1',
+                        accountId: itemAccountId,
                         contactId: contact.id,
                         type: item.type || 'text',
                         body: item.body,
@@ -445,13 +448,14 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 }
 
                 const standardizedNumber = item.phoneNumber.replace(/\D/g, '');
-                let contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber && (!c.accountId || c.accountId === activeAccountId));
+                // Find existing contact scoped to the CORRECT account (using itemAccountId from the webhook payload)
+                let contact = currentContacts.find(c => c.phoneNumber.replace(/\D/g, '') === standardizedNumber && c.accountId === itemAccountId);
 
                 if (!contact) {
                   const newContactId = `c-webhook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                   contact = {
                     id: newContactId,
-                    accountId: activeAccountId,
+                    accountId: itemAccountId,
                     name: item.senderName || `WhatsApp User (+${item.phoneNumber})`,
                     phoneNumber: item.phoneNumber,
                     label: 'new',
@@ -461,13 +465,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     interactions: []
                   };
                   currentContacts.push(contact);
-                  console.log('Automatically added new contact to CRM:', contact);
+                  console.log('Automatically added new contact to CRM for account', itemAccountId, ':', contact);
                 }
 
                 const msgType = item.type || 'text';
                 const newMsg: Message = {
                   id: item.id || `m-webhook-${Date.now()}`,
-                  accountId: activeAccountId || 'acc-1',
+                  accountId: itemAccountId,
                   contactId: contact.id,
                   type: msgType,
                   body: item.body,
@@ -518,28 +522,30 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     workflowsRef.current = workflows;
   }, [contacts, workflows]);
 
-  // Sync active workflow + account + templates + contacts to server for server-side automation
+  // Sync ALL accounts + ALL workflows + templates + contacts to server
+  // The webhook handler uses ALL accounts to route by phone_number_id
   useEffect(() => {
     if (!hasLoaded) return;
 
-    const activeWorkflow = workflows.find(w => w.status === 'ACTIVE');
+    const activeWorkflow = workflows.find(w => w.status === 'ACTIVE' && w.accountId === activeAccountId);
     const activeAccount = accounts.find(a => a.id === activeAccountId);
 
-    // Debounce to avoid flooding the server during rapid edits (e.g., dragging nodes)
     const handler = setTimeout(() => {
       fetch('/api/automation/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workflow: activeWorkflow || null,
+          workflows: workflows,
           templates: templates,
           flows: flows,
           account: activeAccount || null,
+          accounts: accounts,
           contacts: contacts
         })
       }).then(res => {
         if (res.ok) {
-          console.log('[SyncToServer] Automation config synced successfully. Workflow:', activeWorkflow?.name || 'none');
+          console.log('[SyncToServer] Config synced. Accounts:', accounts.length, '| Workflows:', workflows.length);
         }
       }).catch(err => {
         console.error('[SyncToServer] Failed to sync automation config:', err);

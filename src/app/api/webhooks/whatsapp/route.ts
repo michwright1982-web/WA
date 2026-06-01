@@ -111,8 +111,22 @@ export async function POST(request: Request) {
             const msgType = msg.type === 'interactive' || msg.type === 'button' ? 'button' : 
                           msg.type === 'image' || msg.type === 'document' || msg.type === 'audio' || msg.type === 'voice' || msg.type === 'video' ? msg.type : 'text';
 
+            // SERVER-SIDE ACCOUNT ROUTING — resolve which account this message belongs to
+            // using the phone_number_id from the webhook metadata BEFORE queuing
+            const config = global.__whatsflow_automation_config;
+
+            let targetAccount = config?.account;
+            if (config?.accounts && config.accounts.length > 0 && incomingPhoneNumberId) {
+              const matchedAccount = config.accounts.find((a: any) => a.phoneNumberId === incomingPhoneNumberId);
+              if (matchedAccount) targetAccount = matchedAccount;
+            }
+
+            // The accountId this message belongs to (falls back to the active account if no match)
+            const targetAccountId: string = targetAccount?.id || config?.account?.id || '';
+
             const incomingMessage = {
               id: msg.id || `m-webhook-${Date.now()}`,
+              accountId: targetAccountId,
               phoneNumber: msg.from.startsWith('+') ? msg.from : `+${msg.from}`,
               senderName: contactInfo?.profile?.name || `WhatsApp User (+${msg.from})`,
               body: messageBody,
@@ -120,26 +134,16 @@ export async function POST(request: Request) {
               timestamp: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString()
             };
 
-            // 1. Queue the message for the frontend to display in UI
+            // Queue the message (now with accountId) for the frontend to display in the correct account's inbox
             addToQueue(incomingMessage);
-            console.log('Successfully queued parsed incoming message:', incomingMessage);
+            console.log('Successfully queued parsed incoming message for account:', targetAccountId, incomingMessage);
 
-            // 2. SERVER-SIDE WORKFLOW EXECUTION — runs immediately, no polling delay
-            const config = global.__whatsflow_automation_config;
-            
-            // Dynamically resolve target account and workflow based on incoming phone number ID
-            let targetAccount = config?.account;
-            if (config?.accounts && config.accounts.length > 0 && incomingPhoneNumberId) {
-              const matchedAccount = config.accounts.find(a => a.phoneNumberId === incomingPhoneNumberId);
-              if (matchedAccount) targetAccount = matchedAccount;
-            }
-
-            // Assume the active workflow applies globally, or we could look up a specific workflow per account if supported
+            // SERVER-SIDE WORKFLOW EXECUTION
+            // Find the active workflow that belongs specifically to this account
             let targetWorkflow = config?.workflow;
             if (config?.workflows && config.workflows.length > 0) {
-               // For now, use the globally active workflow if no specific per-account routing is defined
-               const activeWf = config.workflows.find(w => w.status === 'ACTIVE' && (!w.accountId || w.accountId === targetAccount?.id));
-               if (activeWf) targetWorkflow = activeWf;
+              const activeWf = config.workflows.find((w: any) => w.status === 'ACTIVE' && w.accountId === targetAccountId);
+              if (activeWf) targetWorkflow = activeWf;
             }
 
             if (targetWorkflow && targetAccount) {
