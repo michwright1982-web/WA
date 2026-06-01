@@ -56,9 +56,11 @@ export async function POST(request: Request) {
         link: mediaUrl,
         filename: body || 'document.pdf'
       };
-    } else if (type === 'voice' && mediaUrl) {
+    } else if (type === 'voice' && (mediaUrl || mediaId)) {
       payload.type = 'audio';
-      payload.audio = {
+      payload.audio = mediaId ? {
+        id: mediaId
+      } : {
         link: mediaUrl
       };
     } else if (type === 'button' && buttons && buttons.length > 0) {

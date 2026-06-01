@@ -120,7 +120,7 @@ interface WhatsFlowContextType {
   sendTextMessage: (contactId: string, body: string) => void;
   sendMediaMessage: (contactId: string, mediaUrl: string, body: string, mediaId?: string) => void;
   sendDocumentMessage: (contactId: string, mediaUrl: string, fileName: string, mediaId?: string) => void;
-  sendVoiceMessage: (contactId: string, mediaUrl: string, duration: string) => void;
+  sendVoiceMessage: (contactId: string, mediaUrl: string, duration: string, mediaId?: string) => void;
   sendButtonMessage: (contactId: string, body: string, buttons: string[]) => void;
   sendTemplateMessage: (contactId: string, templateId: string) => void;
   addContact: (contact: Omit<Contact, 'id'>) => void;
@@ -683,7 +683,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     sendMessageToMeta(newMsg, mediaId ? { mediaId } : {});
   };
 
-  const sendVoiceMessage = (cId: string, mediaUrl: string, duration: string) => {
+  const sendVoiceMessage = (cId: string, mediaUrl: string, duration: string, mediaId?: string) => {
     const newMsg: Message = {
       id: `m-voice-${Date.now()}`,
       accountId: activeAccountId,
@@ -691,12 +691,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       type: 'voice',
       body: `Voice Mail (${duration})`,
       mediaUrl,
+      mediaId,
       direction: 'OUTGOING',
       status: 'sent',
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    sendMessageToMeta(newMsg);
+    sendMessageToMeta(newMsg, mediaId ? { mediaId } : {});
   };
 
   const sendButtonMessage = (cId: string, body: string, buttons: string[]) => {

@@ -35,6 +35,145 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
+const VoicePlayer: React.FC<{ msg: Message; isOutgoing: boolean }> = ({ msg, isOutgoing }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState<string>('');
+  const [currentTime, setCurrentTime] = useState(0);
+  const [percent, setPercent] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Parse duration from msg body if audio isn't loaded yet
+  useEffect(() => {
+    if (msg.body) {
+      const match = msg.body.match(/Voice Mail \(([^)]+)\)/);
+      if (match && match[1]) {
+        setDuration(match[1]);
+      }
+    }
+  }, [msg.body]);
+
+  useEffect(() => {
+    // Cleanup audio on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handlePlayPause = () => {
+    if (!msg.mediaUrl) {
+      alert("No audio file is available for playback.");
+      return;
+    }
+
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+    } else {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(msg.mediaUrl);
+        
+        audioRef.current.addEventListener('timeupdate', () => {
+          if (audioRef.current) {
+            const current = audioRef.current.currentTime;
+            const dur = audioRef.current.duration || 1;
+            setCurrentTime(current);
+            setPercent(current / dur);
+          }
+        });
+
+        audioRef.current.addEventListener('ended', () => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setPercent(0);
+        });
+
+        audioRef.current.addEventListener('loadedmetadata', () => {
+          if (audioRef.current) {
+            const totalSecs = Math.floor(audioRef.current.duration);
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+            setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+          }
+        });
+      }
+
+      audioRef.current.play().catch(err => {
+        console.error("Audio playback failed:", err);
+        alert("Failed to play audio. The link might be expired or inaccessible.");
+      });
+      setIsPlaying(true);
+    }
+  };
+
+  const waveBars = [6, 12, 8, 16, 4, 10, 8, 14, 6];
+
+  return (
+    <div className={`mb-2.5 p-3 rounded-xl border flex items-center gap-3 ${
+      isOutgoing 
+        ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
+        : 'bg-zinc-100 border-zinc-200 text-black'
+    }`}>
+      <button
+        type="button"
+        onClick={handlePlayPause}
+        className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${
+          isOutgoing
+            ? 'bg-white text-emerald-850 hover:bg-emerald-50'
+            : 'bg-indigo-600 hover:bg-indigo-550 text-white'
+        }`}
+        title={isPlaying ? "Pause voice mail" : "Play voice mail"}
+      >
+        {isPlaying ? (
+          <Pause className="h-3.5 w-3.5 fill-current" />
+        ) : (
+          <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+        )}
+      </button>
+      <div className="flex-1 min-w-0 space-y-1">
+        {/* Waveform graphic simulator */}
+        <div className="flex items-end gap-[2px] h-5 px-1 pt-1.5 select-none">
+          {waveBars.map((height, idx) => {
+            const isLit = percent > idx / waveBars.length;
+            let barColor = '';
+            if (isOutgoing) {
+              barColor = isLit ? 'bg-white' : 'bg-emerald-400/40';
+            } else {
+              barColor = isLit ? 'bg-indigo-650' : 'bg-zinc-400/40';
+            }
+
+            return (
+              <div 
+                key={idx} 
+                style={{ height: `${height * 1.2}px` }}
+                className={`flex-1 rounded-sm transition-all duration-300 ${barColor} ${
+                  isPlaying && isLit ? 'animate-pulse' : ''
+                }`}
+              />
+            );
+          })}
+        </div>
+        <div className={`flex justify-between items-center text-[8px] font-mono font-bold ${isOutgoing ? 'text-emerald-250' : 'text-zinc-500'}`}>
+          <span className="flex items-center gap-1">
+            <Volume2 className="h-2.5 w-2.5" /> 
+            {isPlaying ? 'PLAYING' : 'VOICE MAIL'}
+          </span>
+          <span>
+            {isPlaying 
+              ? `${Math.floor(currentTime / 60)}:${Math.floor(currentTime % 60).toString().padStart(2, '0')} / ${duration}`
+              : duration
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ChatPage() {
   const { 
     contacts, 
@@ -152,6 +291,12 @@ export default function ChatPage() {
   const [voiceDuration, setVoiceDuration] = useState(0);
   const [voiceTimer, setVoiceTimer] = useState<NodeJS.Timeout | null>(null);
 
+  // Real voice recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const voiceDurationRef = useRef<number>(0);
+
   const activeContact = contacts.find(c => c.id === activeContactId) || contacts[0];
   const chatMessages = activeContact ? messages.filter(m => m.contactId === activeContact.id) : [];
 
@@ -166,25 +311,111 @@ export default function ChatPage() {
     c.phoneNumber.includes(searchQuery)
   );
 
-  const handleToggleVoiceRecording = () => {
+  const handleToggleVoiceRecording = async () => {
     if (!isRecordingVoice) {
-      setIsRecordingVoice(true);
-      setVoiceDuration(0);
-      const timer = setInterval(() => {
-        setVoiceDuration(prev => prev + 1);
-      }, 1000);
-      setVoiceTimer(timer as any);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        
+        // Find optimal MIME type supported by browser
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+          mimeType = 'audio/ogg;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        }
+        
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+        
+        mediaRecorder.onstop = async () => {
+          setIsUploading(true);
+          try {
+            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+            const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const audioFile = new File([audioBlob], `voicemail_${Date.now()}.${ext}`, { type: mimeType });
+            
+            const formData = new FormData();
+            formData.append('file', audioFile);
+            if (activeAccount) {
+              formData.append('phoneNumberId', activeAccount.phoneNumberId);
+              formData.append('accessToken', activeAccount.accessToken);
+            }
+            
+            const res = await fetch('/api/media/upload', {
+              method: 'POST',
+              body: formData
+            });
+            
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({}));
+              throw new Error(errorData.error || 'Failed to upload voice mail.');
+            }
+            
+            const data = await res.json();
+            let finalUrl = '';
+            if (data.mediaUrl) {
+              if (data.mediaUrl.startsWith('data:') || data.mediaUrl.startsWith('http')) {
+                finalUrl = data.mediaUrl;
+              } else {
+                finalUrl = window.location.origin + data.mediaUrl;
+              }
+            }
+            
+            const mins = Math.floor(voiceDurationRef.current / 60);
+            const secs = voiceDurationRef.current % 60;
+            const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            sendVoiceMessage(activeContactId, finalUrl, formatted, data.mediaId);
+          } catch (err: any) {
+            console.error('Error sharing voice recording:', err);
+            alert(err.message || 'Error occurred while saving your voice recording.');
+          } finally {
+            setIsUploading(false);
+          }
+        };
+        
+        mediaRecorder.start();
+        setIsRecordingVoice(true);
+        setVoiceDuration(0);
+        voiceDurationRef.current = 0;
+        
+        const timer = setInterval(() => {
+          setVoiceDuration(prev => {
+            const next = prev + 1;
+            voiceDurationRef.current = next;
+            return next;
+          });
+        }, 1000);
+        setVoiceTimer(timer as any);
+      } catch (err: any) {
+        console.error('Failed to access microphone:', err);
+        alert('Could not access your microphone. Please verify permission settings.');
+      }
     } else {
       if (voiceTimer) {
         clearInterval(voiceTimer);
         setVoiceTimer(null);
       }
       setIsRecordingVoice(false);
-      const mins = Math.floor(voiceDuration / 60);
-      const secs = voiceDuration % 60;
-      const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      sendVoiceMessage(activeContactId, 'https://whatsflow.com/assets/audio/voice-mail.mp3', formatted);
-      setVoiceDuration(0);
+      
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     }
   };
 
@@ -195,6 +426,19 @@ export default function ChatPage() {
     }
     setIsRecordingVoice(false);
     setVoiceDuration(0);
+    voiceDurationRef.current = 0;
+    
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = null;
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   };
 
   const handleSendDocument = async (file: File) => {
@@ -672,41 +916,7 @@ export default function ChatPage() {
 
                       {/* Voice Mail Player rendering */}
                       {msg.type === 'voice' && (
-                        <div className={`mb-2.5 p-3 rounded-xl border flex items-center gap-3 ${
-                          isOutgoing 
-                            ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
-                            : 'bg-zinc-100 border-zinc-200 text-black'
-                        }`}>
-                          <button
-                            type="button"
-                            className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${
-                              isOutgoing
-                                ? 'bg-white text-emerald-850 hover:bg-emerald-50'
-                                : 'bg-indigo-600 hover:bg-indigo-550 text-white'
-                            }`}
-                            title="Play voice mail"
-                          >
-                            <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
-                          </button>
-                          <div className="flex-1 min-w-0 space-y-1">
-                            {/* Waveform graphic simulator */}
-                            <div className="flex items-end gap-[2px] h-5 px-1 pt-1.5 select-none">
-                              <div className={`h-1.5 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300' : 'bg-indigo-500'}`}></div>
-                              <div className={`h-3 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300' : 'bg-indigo-500'}`}></div>
-                              <div className={`h-2 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300' : 'bg-indigo-500'}`}></div>
-                              <div className={`h-4 flex-1 rounded-sm animate-pulse ${isOutgoing ? 'bg-emerald-200' : 'bg-indigo-400'}`}></div>
-                              <div className={`h-1 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300' : 'bg-indigo-500'}`}></div>
-                              <div className={`h-3 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/60' : 'bg-indigo-500/50'}`}></div>
-                              <div className={`h-2 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/40' : 'bg-indigo-500/30'}`}></div>
-                              <div className={`h-4 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/30' : 'bg-indigo-500/20'}`}></div>
-                              <div className={`h-1.5 flex-1 rounded-sm ${isOutgoing ? 'bg-emerald-300/20' : 'bg-indigo-500/10'}`}></div>
-                            </div>
-                            <div className={`flex justify-between items-center text-[8px] font-mono font-bold ${isOutgoing ? 'text-emerald-250' : 'text-zinc-500'}`}>
-                              <span className="flex items-center gap-1"><Volume2 className="h-2.5 w-2.5" /> VOICE MAIL</span>
-                              <span>{msg.body.replace('Voice Mail (', '').replace(')', '')}</span>
-                            </div>
-                          </div>
-                        </div>
+                        <VoicePlayer msg={msg} isOutgoing={isOutgoing} />
                       )}
 
                       {msg.type !== 'document' && msg.type !== 'voice' && (
