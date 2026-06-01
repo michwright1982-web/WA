@@ -32,22 +32,21 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    if (body.workflow) {
-      global.__whatsflow_automation_config!.workflow = body.workflow;
-    }
-    if (body.workflows) {
+    // Always update all fields — including null/empty values so deletions are reflected immediately
+    global.__whatsflow_automation_config!.workflow = body.workflow ?? null;
+    if (body.workflows !== undefined) {
       global.__whatsflow_automation_config!.workflows = body.workflows;
     }
-    if (body.templates) {
+    if (body.templates !== undefined) {
       global.__whatsflow_automation_config!.templates = body.templates;
     }
-    if (body.account) {
+    if (body.account !== undefined) {
       global.__whatsflow_automation_config!.account = body.account;
     }
-    if (body.accounts) {
+    if (body.accounts !== undefined) {
       global.__whatsflow_automation_config!.accounts = body.accounts;
     }
-    if (body.contacts) {
+    if (body.contacts !== undefined) {
       global.__whatsflow_automation_config!.contacts = body.contacts;
     }
 

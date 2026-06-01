@@ -177,6 +177,7 @@ export async function POST(request: Request) {
                     if (result.actionType === 'change_label') {
                       const sysActionForUI = {
                         id: `m-sys-action-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                        accountId: targetAccountId,
                         phoneNumber: incomingMessage.phoneNumber,
                         senderName: 'System',
                         body: 'CRM Label Update',
@@ -304,6 +305,7 @@ export async function POST(request: Request) {
 
                       const outgoingForUI = {
                         id: `m-auto-server-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                        accountId: targetAccountId,
                         phoneNumber: incomingMessage.phoneNumber,
                         senderName: 'WhatsFlow Bot',
                         body: result.responseMessage.body,
