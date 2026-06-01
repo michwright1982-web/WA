@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { useWhatsFlow } from '@/lib/whatsflow-store';
 import { 
@@ -16,7 +17,8 @@ import {
 } from 'lucide-react';
 
 export default function ContactsPage() {
-  const { contacts, addContact, updateContact, deleteContact } = useWhatsFlow();
+  const { contacts, addContact, updateContact, deleteContact, setActiveContactId } = useWhatsFlow();
+  const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -157,7 +159,17 @@ export default function ContactsPage() {
               <tbody className="divide-y divide-zinc-900">
                 {filtered.map(ct => (
                   <tr key={ct.id} className="hover:bg-zinc-900/10 transition-colors">
-                    <td className="p-4 font-semibold text-zinc-200">{ct.name}</td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => {
+                          setActiveContactId(ct.id);
+                          router.push('/chat');
+                        }}
+                        className="font-semibold text-zinc-200 hover:text-emerald-400 hover:underline underline-offset-2 transition-colors cursor-pointer text-left"
+                      >
+                        {ct.name}
+                      </button>
+                    </td>
                     <td className="p-4 text-zinc-300 font-mono">{ct.phoneNumber}</td>
                     <td className="p-4 text-zinc-400">{ct.email || '—'}</td>
                     <td className="p-4">
