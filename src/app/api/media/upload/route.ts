@@ -16,16 +16,25 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 1. Save file locally in public/uploads/
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-
-    // Clean filename of unsafe characters
+    // 1. Prepare clean filename and dynamic fallback
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = path.join(uploadDir, safeName);
-    await writeFile(filePath, buffer);
+    let mediaUrl = '';
 
-    const mediaUrl = `/uploads/${safeName}`;
+    // Generate in-memory base64 data URI as fallback for read-only / serverless filesystems
+    const fileBase64 = buffer.toString('base64');
+    const dataUri = `data:${file.type || 'application/pdf'};base64,${fileBase64}`;
+
+    try {
+      // Attempt to save file locally in public/uploads/ (works in writable environments)
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      await mkdir(uploadDir, { recursive: true });
+      const filePath = path.join(uploadDir, safeName);
+      await writeFile(filePath, buffer);
+      mediaUrl = `/uploads/${safeName}`;
+    } catch (err) {
+      console.warn('Unable to write to local filesystem (likely read-only serverless environment). Falling back to in-memory Data URI:', err);
+      mediaUrl = dataUri;
+    }
     let mediaId: string | undefined = undefined;
 
     // 2. If valid Meta credentials are provided, upload to Meta
