@@ -2082,9 +2082,10 @@ export default function WorkflowsPage() {
 
                           if (subType === 'send_flow') {
                             return (
-                              <div className="space-y-4">
+                              <div className="space-y-3">
+                                {/* Flow selector */}
                                 <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select Synced WhatsApp Flow</label>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select WhatsApp Flow</label>
                                   <div className="flex gap-2">
                                     <select
                                       value={configFlowId}
@@ -2109,13 +2110,96 @@ export default function WorkflowsPage() {
                                       onClick={handleSyncFlows}
                                       className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-855 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                                     >
-                                      <RefreshCw className="h-3.5 w-3.5" /> Sync Flows
+                                      <RefreshCw className="h-3.5 w-3.5" /> Sync
                                     </button>
+                                  </div>
+                                  {!configFlowId && (
+                                    <p className="text-[9px] text-amber-400 mt-1">⚠️ No flow selected — sync from Meta first or select an existing flow.</p>
+                                  )}
+                                </div>
+
+                                {/* Message body */}
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Message Body</label>
+                                  <textarea
+                                    value={configFlowBody}
+                                    onChange={e => setConfigFlowBody(e.target.value)}
+                                    rows={2}
+                                    placeholder="Fill out your details to get started!"
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none resize-none"
+                                  />
+                                </div>
+
+                                {/* CTA button label */}
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">CTA Button Label</label>
+                                  <input
+                                    type="text"
+                                    value={configFlowCta}
+                                    onChange={e => setConfigFlowCta(e.target.value)}
+                                    placeholder="Open Form"
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Screen ID */}
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Opening Screen ID</label>
+                                  <input
+                                    type="text"
+                                    value={configFlowScreen}
+                                    onChange={e => setConfigFlowScreen(e.target.value)}
+                                    placeholder="SCREEN_ONE"
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Flow Token */}
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Flow Token <span className="text-zinc-600 normal-case font-normal">(optional)</span></label>
+                                  <input
+                                    type="text"
+                                    value={configFlowToken}
+                                    onChange={e => setConfigFlowToken(e.target.value)}
+                                    placeholder="Leave blank for auto-generated token"
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Header & Footer */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Header <span className="text-zinc-600 normal-case font-normal">(optional)</span></label>
+                                    <input
+                                      type="text"
+                                      value={configFlowHeader}
+                                      onChange={e => setConfigFlowHeader(e.target.value)}
+                                      placeholder="Welcome!"
+                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Footer <span className="text-zinc-600 normal-case font-normal">(optional)</span></label>
+                                    <input
+                                      type="text"
+                                      value={configFlowFooter}
+                                      onChange={e => setConfigFlowFooter(e.target.value)}
+                                      placeholder="Powered by WhatsFlow"
+                                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                    />
                                   </div>
                                 </div>
 
-                                <div className="bg-zinc-950/40 p-2.5 rounded border border-zinc-850 text-[9px] text-zinc-400 leading-normal">
-                                  💡 **Meta Interactive Flow Message**: Dynamically opens native WhatsApp Forms (Flows) inside the chat window for beautiful booking, signup, or questionnaire collection.
+                                {/* Initial data payload */}
+                                <div>
+                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Initial Data (JSON) <span className="text-zinc-600 normal-case font-normal">(optional)</span></label>
+                                  <textarea
+                                    value={configFlowPayload}
+                                    onChange={e => setConfigFlowPayload(e.target.value)}
+                                    rows={3}
+                                    placeholder='{}'
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-[10px] text-emerald-400 font-mono focus:border-indigo-500 focus:outline-none resize-none"
+                                  />
                                 </div>
                               </div>
                             );
