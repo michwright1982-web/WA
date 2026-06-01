@@ -219,7 +219,14 @@ export default function ChatPage() {
 
       const data = await res.json();
       const name = file.name;
-      const finalUrl = data.mediaUrl ? window.location.origin + data.mediaUrl : '';
+      let finalUrl = '';
+      if (data.mediaUrl) {
+        if (data.mediaUrl.startsWith('data:') || data.mediaUrl.startsWith('http')) {
+          finalUrl = data.mediaUrl;
+        } else {
+          finalUrl = window.location.origin + data.mediaUrl;
+        }
+      }
 
       if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
         sendMediaMessage(activeContactId, finalUrl, '', data.mediaId);
@@ -756,17 +763,17 @@ export default function ChatPage() {
           </div>
 
           {/* Dialog Action bar */}
-          <div className="p-2.5 px-4 border-t border-zinc-800 bg-[#202c33] flex items-center gap-2 relative z-50">
+          <div className="p-2.5 px-4 border-t border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-950/40 flex items-center gap-2 relative z-50">
             {isRecordingVoice ? (
               // Recording UI state
-              <div className="flex-1 flex items-center justify-between bg-[#2a3942] rounded-full px-4 py-2 text-emerald-500 animate-pulse border border-emerald-500/20">
+              <div className="flex-1 flex items-center justify-between bg-white dark:bg-zinc-900/50 rounded-full px-4 py-2 text-emerald-500 animate-pulse border border-emerald-500/20 shadow-sm dark:shadow-none">
                 <div className="flex items-center gap-2">
                   <Mic className="h-4.5 w-4.5" />
-                  <span className="text-sm font-medium text-emerald-400">
+                  <span className="text-sm font-medium text-emerald-500 dark:text-emerald-400">
                     {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
-                <span className="text-xs text-zinc-400">Recording voice message...</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">Recording voice message...</span>
               </div>
             ) : (
               <>
@@ -780,7 +787,7 @@ export default function ChatPage() {
                       setShowBtnModal(false);
                     }}
                     disabled={contacts.length === 0 || isUploading}
-                    className={`p-2 text-zinc-400 transition-colors shrink-0 flex items-center justify-center ${contacts.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:text-zinc-200 cursor-pointer'} ${showAttachMenu ? 'bg-zinc-800 rounded-full text-zinc-200' : ''}`}
+                    className={`p-2 transition-colors shrink-0 flex items-center justify-center ${contacts.length === 0 ? 'opacity-50 cursor-not-allowed text-zinc-400 dark:text-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer'} ${showAttachMenu ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-full' : ''}`}
                     title="Attach"
                   >
                     <Plus className={`h-6 w-6 stroke-[2] transition-transform ${showAttachMenu ? 'rotate-45' : ''} ${isUploading ? 'animate-spin opacity-50' : ''}`} />
@@ -788,14 +795,14 @@ export default function ChatPage() {
 
                   {/* Attachment Popup Menu */}
                   {showAttachMenu && (
-                    <div className="absolute bottom-14 left-0 mb-2 bg-[#233138] border border-zinc-800 rounded-2xl shadow-xl p-3 z-50 flex flex-col gap-3 min-w-[200px] animate-in fade-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-14 left-0 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-3 z-50 flex flex-col gap-3 min-w-[200px] animate-in fade-in slide-in-from-bottom-2">
                       
                       {/* Document Button */}
-                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
+                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-50 dark:hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
                         <div className="h-11 w-11 rounded-full bg-[#7F66FF] flex items-center justify-center group-hover:bg-[#6c53ed] transition-colors shadow-sm shrink-0">
                           <FileText className="h-5 w-5 text-white stroke-[2]" />
                         </div>
-                        <span className="text-[15px] text-zinc-200 group-hover:text-white transition-colors font-medium">Document</span>
+                        <span className="text-[15px] text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors font-medium">Document</span>
                         <input
                           type="file"
                           className="hidden"
@@ -808,11 +815,11 @@ export default function ChatPage() {
                       </label>
 
                       {/* Photos & Videos Button */}
-                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
+                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-50 dark:hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
                         <div className="h-11 w-11 rounded-full bg-[#007BFF] flex items-center justify-center group-hover:bg-[#0069d9] transition-colors shadow-sm shrink-0">
                           <ImageIcon className="h-5 w-5 text-white stroke-[2]" />
                         </div>
-                        <span className="text-[15px] text-zinc-200 group-hover:text-white transition-colors font-medium">Photos & videos</span>
+                        <span className="text-[15px] text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors font-medium">Photos & videos</span>
                         <input
                           type="file"
                           accept="image/*,video/*"
@@ -895,7 +902,7 @@ export default function ChatPage() {
                   value={typedMessage}
                   onChange={(e) => setTypedMessage(e.target.value)}
                   disabled={contacts.length === 0}
-                  className="w-full bg-[#2a3942] rounded-lg py-2.5 px-4 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none transition-colors"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-transparent dark:border-zinc-800/50 focus:border-zinc-300 dark:focus:border-zinc-700 shadow-sm dark:shadow-none rounded-lg py-2.5 px-4 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none transition-colors"
                 />
               </form>
             )}
@@ -936,7 +943,7 @@ export default function ChatPage() {
                   onClick={handleToggleVoiceRecording}
                   disabled={contacts.length === 0}
                   className={`h-10 w-10 flex items-center justify-center rounded-full transition-all shrink-0 ml-1 ${
-                    contacts.length === 0 ? 'text-zinc-600 cursor-not-allowed' : 'text-zinc-400 hover:text-zinc-200 cursor-pointer'
+                    contacts.length === 0 ? 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer'
                   }`}
                   title="Voice message"
                 >
