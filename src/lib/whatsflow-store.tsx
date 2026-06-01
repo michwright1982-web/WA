@@ -255,23 +255,41 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Load from localStorage on mount — fall back to seed data on first visit
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const DEFAULT_ACC = 'acc-1';
+
       const storedAccounts = localStorage.getItem('whatsflow_accounts');
       try { setAccounts(storedAccounts ? JSON.parse(storedAccounts) : SEED_ACCOUNTS); } catch (e) { setAccounts(SEED_ACCOUNTS); }
 
       const storedContacts = localStorage.getItem('whatsflow_contacts');
-      try { setContacts(storedContacts ? JSON.parse(storedContacts) : SEED_CONTACTS); } catch (e) { setContacts(SEED_CONTACTS); }
+      try {
+        const parsed: Contact[] = storedContacts ? JSON.parse(storedContacts) : SEED_CONTACTS;
+        // Migrate legacy entries that have no accountId to the default account
+        setContacts(parsed.map(c => c.accountId ? c : { ...c, accountId: DEFAULT_ACC }));
+      } catch (e) { setContacts(SEED_CONTACTS); }
 
       const storedMessages = localStorage.getItem('whatsflow_messages');
-      try { setMessages(storedMessages ? JSON.parse(storedMessages) : SEED_MESSAGES); } catch (e) { setMessages(SEED_MESSAGES); }
+      try {
+        const parsed: Message[] = storedMessages ? JSON.parse(storedMessages) : SEED_MESSAGES;
+        setMessages(parsed.map(m => m.accountId ? m : { ...m, accountId: DEFAULT_ACC }));
+      } catch (e) { setMessages(SEED_MESSAGES); }
 
       const storedTemplates = localStorage.getItem('whatsflow_templates');
-      try { setTemplates(storedTemplates ? JSON.parse(storedTemplates) : SEED_TEMPLATES); } catch (e) { setTemplates(SEED_TEMPLATES); }
+      try {
+        const parsed: Template[] = storedTemplates ? JSON.parse(storedTemplates) : SEED_TEMPLATES;
+        setTemplates(parsed.map(t => t.accountId ? t : { ...t, accountId: DEFAULT_ACC }));
+      } catch (e) { setTemplates(SEED_TEMPLATES); }
 
       const storedFlows = localStorage.getItem('whatsflow_flows');
-      try { setFlows(storedFlows ? JSON.parse(storedFlows) : SEED_FLOWS); } catch (e) { setFlows(SEED_FLOWS); }
+      try {
+        const parsed: WhatsAppFlow[] = storedFlows ? JSON.parse(storedFlows) : SEED_FLOWS;
+        setFlows(parsed.map(f => f.accountId ? f : { ...f, accountId: DEFAULT_ACC }));
+      } catch (e) { setFlows(SEED_FLOWS); }
 
       const storedWorkflows = localStorage.getItem('whatsflow_workflows');
-      try { setWorkflows(storedWorkflows ? JSON.parse(storedWorkflows) : SEED_WORKFLOWS); } catch (e) { setWorkflows(SEED_WORKFLOWS); }
+      try {
+        const parsed: Workflow[] = storedWorkflows ? JSON.parse(storedWorkflows) : SEED_WORKFLOWS;
+        setWorkflows(parsed.map(w => w.accountId ? w : { ...w, accountId: DEFAULT_ACC }));
+      } catch (e) { setWorkflows(SEED_WORKFLOWS); }
 
       const storedActiveAccountId = localStorage.getItem('whatsflow_active_account_id');
       setActiveAccountId(storedActiveAccountId || 'acc-1');
@@ -829,11 +847,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   return (
     <WhatsFlowContext.Provider value={{
       accounts,
-      contacts: contacts.filter(c => !c.accountId || c.accountId === activeAccountId),
-      messages: messages.filter(m => !m.accountId || m.accountId === activeAccountId),
-      templates: templates.filter(t => !t.accountId || t.accountId === activeAccountId),
-      flows: flows.filter(f => !f.accountId || f.accountId === activeAccountId),
-      workflows: workflows.filter(w => !w.accountId || w.accountId === activeAccountId),
+      contacts: contacts.filter(c => c.accountId === activeAccountId),
+      messages: messages.filter(m => m.accountId === activeAccountId),
+      templates: templates.filter(t => t.accountId === activeAccountId),
+      flows: flows.filter(f => f.accountId === activeAccountId),
+      workflows: workflows.filter(w => w.accountId === activeAccountId),
       activeAccountId,
       setActiveAccountId,
       activeContactId,
