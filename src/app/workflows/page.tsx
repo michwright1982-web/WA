@@ -2095,6 +2095,11 @@ export default function WorkflowsPage() {
                                         const matchedFlow = flows.find(f => f.id === selectedId);
                                         if (matchedFlow) {
                                           setConfigNodeLabel(`Send ${matchedFlow.name}`);
+                                          if (!configFlowHeader) setConfigFlowHeader(matchedFlow.name);
+                                          if (!configFlowBody) setConfigFlowBody(`Please fill in the details for ${matchedFlow.name} to continue.`);
+                                          if (!configFlowCta || configFlowCta === 'Open Form') setConfigFlowCta(`Open Form`);
+                                          if (!configFlowScreen) setConfigFlowScreen('SCREEN_ONE');
+                                          if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{\n  "source": "automation"\n}');
                                         }
                                       }}
                                       className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
