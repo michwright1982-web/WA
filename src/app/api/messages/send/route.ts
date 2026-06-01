@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { phoneNumberId, accessToken, to, body, type, mediaUrl, buttons, templateId, templateLanguage, templateParams } = await request.json();
+    const { phoneNumberId, accessToken, to, body, type, mediaUrl, buttons, templateId, templateLanguage, templateParams, flowId, flowToken, flowScreen, flowCta, flowHeader, flowFooter, flowPayload } = await request.json();
 
     if (!phoneNumberId || !accessToken || !to) {
       return NextResponse.json({ error: 'Missing required credentials or recipient number.' }, { status: 400 });
@@ -72,6 +72,41 @@ export async function POST(request: Request) {
           }))
         }
       };
+    } else if (type === 'flow') {
+      // Interactive WhatsApp Flow message
+      let parsedData = {};
+      try {
+        parsedData = flowPayload ? JSON.parse(flowPayload) : {};
+      } catch (e) {
+        console.warn('Invalid JSON in flowPayload, ignoring data block.');
+      }
+
+      payload.type = 'interactive';
+      payload.interactive = {
+        type: 'flow',
+        body: { text: body || 'Please fill in the form below.' },
+        action: {
+          name: 'flow',
+          parameters: {
+            flow_message_version: '3',
+            flow_token: flowToken || `flow-token-${Date.now()}`,
+            flow_id: flowId || '',
+            flow_cta: flowCta || 'Open Form',
+            flow_action: 'navigate',
+            flow_action_payload: {
+              screen: flowScreen || 'SCREEN_ONE',
+              data: parsedData
+            }
+          }
+        }
+      };
+
+      if (flowHeader) {
+        payload.interactive.header = { type: 'text', text: flowHeader };
+      }
+      if (flowFooter) {
+        payload.interactive.footer = { text: flowFooter };
+      }
     } else {
       payload.type = 'text';
       payload.text = {
