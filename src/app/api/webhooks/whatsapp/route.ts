@@ -163,7 +163,7 @@ export async function POST(request: Request) {
                     ...incomingMessage,
                     contactLabel: contact?.label || 'unlabeled'
                   },
-                  config.templates || []
+                  config?.templates || []
                 );
 
                 console.log('[ServerAutomation] Workflow results:', JSON.stringify(results, null, 2));
