@@ -63,9 +63,19 @@ export async function POST(request: Request) {
         metaFileName = safeName.replace(/\.[^/.]+$/, "") + ".ogg";
       }
 
+      // Determine Meta standard generic media type (audio, video, image, document)
+      let metaMediaType = 'document';
+      if (mimeType.startsWith('audio/')) {
+        metaMediaType = 'audio';
+      } else if (mimeType.startsWith('image/')) {
+        metaMediaType = 'image';
+      } else if (mimeType.startsWith('video/')) {
+        metaMediaType = 'video';
+      }
+
       const fileBlob = new Blob([buffer], { type: mimeType });
       metaFormData.append('file', fileBlob, metaFileName);
-      metaFormData.append('type', mimeType);
+      metaFormData.append('type', metaMediaType);
 
       try {
         const response = await fetch(metaUrl, {
