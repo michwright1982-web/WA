@@ -24,7 +24,10 @@ import {
 
 export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
-  const { accounts, activeAccountId, setActiveAccountId, theme, toggleTheme } = useWhatsFlow();
+  const { accounts, activeAccountId, setActiveAccountId, theme, toggleTheme, messages } = useWhatsFlow();
+
+  // Count unread incoming messages (not yet 'read')
+  const unreadIncomingCount = messages.filter(m => m.direction === 'INCOMING' && m.status !== 'read').length;
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const activeAccount = accounts.find(a => a.id === activeAccountId) || accounts[0];
@@ -104,11 +107,15 @@ export const DashboardShell: React.FC<{ children: React.ReactNode }> = ({ childr
                     <Icon className={`h-4.5 w-4.5 transition-colors ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
                     <span>{item.name}</span>
                   </div>
-                  {item.badge && (
+                  {item.name === 'Live Chat Inbox' && unreadIncomingCount > 0 ? (
+                    <span className="text-[10px] min-w-[20px] text-center px-1.5 py-0.5 rounded-full font-bold bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse">
+                      {unreadIncomingCount > 99 ? '99+' : unreadIncomingCount}
+                    </span>
+                  ) : item.badge ? (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-white/10 text-white border border-white/10">
                       {item.badge}
                     </span>
-                  )}
+                  ) : null}
                 </Link>
               );
             })}
