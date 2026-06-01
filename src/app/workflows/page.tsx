@@ -2030,7 +2030,7 @@ export default function WorkflowsPage() {
                                       />
                                     </div>
                                   </div>
-                                ) : (
+                                ) : configSendOption === 'template' ? (
                                   <div className="space-y-4">
                                     <div>
                                       <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select Meta HSM Template</label>
@@ -2152,7 +2152,7 @@ export default function WorkflowsPage() {
                                       />
                                     </div>
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             );
                           }
