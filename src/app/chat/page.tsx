@@ -317,14 +317,14 @@ export default function ChatPage() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         streamRef.current = stream;
         
-        // Find optimal MIME type supported by browser
+        // Find optimal MIME type supported by browser (prioritizing audio/mp4 for universal Meta/iOS compatibility)
         let mimeType = 'audio/webm';
-        if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
           mimeType = 'audio/ogg;codecs=opus';
         } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
         }
         
         const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -362,6 +362,13 @@ export default function ChatPage() {
             }
             
             const data = await res.json();
+            
+            // Check if there was a Meta upload error for a live developer token
+            if (data.metaError && activeAccount && !activeAccount.accessToken.startsWith('EAAGb...')) {
+              console.error('Meta WhatsApp media upload failed:', data.metaError);
+              alert(`Meta Cloud API upload failed: ${data.metaError.message || JSON.stringify(data.metaError)}. Your voice note will fall back to local URL delivery.`);
+            }
+            
             let finalUrl = '';
             if (data.mediaUrl) {
               if (data.mediaUrl.startsWith('data:') || data.mediaUrl.startsWith('http')) {
