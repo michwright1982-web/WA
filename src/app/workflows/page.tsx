@@ -702,7 +702,7 @@ export default function WorkflowsPage() {
   const [searchNodeLibraryQuery, setSearchNodeLibraryQuery] = useState('');
   
   // Unified send message config state
-  const [configSendOption, setConfigSendOption] = useState<'message' | 'template'>('message');
+  const [configSendOption, setConfigSendOption] = useState<'message' | 'template' | 'flow'>('message');
   const [configMessageFormat, setConfigMessageFormat] = useState<'text' | 'document'>('text');
   
   // Node active status
@@ -1941,7 +1941,7 @@ export default function WorkflowsPage() {
                             const selectedTmpl = templates.find(t => t.id === configTemplateId);
                             return (
                               <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800">
+                                <div className="grid grid-cols-3 gap-3 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800">
                                   <button
                                     type="button"
                                     onClick={() => setConfigSendOption('message')}
@@ -1955,6 +1955,13 @@ export default function WorkflowsPage() {
                                     className={`py-2 px-3 rounded-lg text-[10px] font-bold transition-all ${configSendOption === 'template' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
                                   >
                                     Send Template
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfigSendOption('flow')}
+                                    className={`py-2 px-3 rounded-lg text-[10px] font-bold transition-all ${configSendOption === 'flow' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                  >
+                                    Send Flow
                                   </button>
                                 </div>
 
@@ -2074,6 +2081,76 @@ export default function WorkflowsPage() {
                                         )}
                                       </>
                                     )}
+                                  </div>
+                                ) : configSendOption === 'flow' ? (
+                                  <div className="space-y-3">
+                                    {/* Flow selector */}
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Select WhatsApp Flow</label>
+                                      <div className="flex gap-2">
+                                        <select
+                                          value={configFlowId}
+                                          onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            setConfigFlowId(selectedId);
+                                            const matchedFlow = flows.find(f => f.id === selectedId);
+                                            if (matchedFlow) {
+                                              if (!configFlowHeader) setConfigFlowHeader(matchedFlow.name);
+                                              if (!configFlowBody) setConfigFlowBody(`Please fill in the details for ${matchedFlow.name} to continue.`);
+                                              if (!configFlowCta || configFlowCta === 'Open Form') setConfigFlowCta(`Open Form`);
+                                              if (!configFlowScreen) setConfigFlowScreen('SCREEN_ONE');
+                                              if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{\n  "source": "automation"\n}');
+                                            }
+                                          }}
+                                          className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                                        >
+                                          <option value="">-- Choose a Meta Flow --</option>
+                                          {flows.map(f => (
+                                            <option key={f.id} value={f.id}>{f.name} ({f.status})</option>
+                                          ))}
+                                        </select>
+                                        <button
+                                          type="button"
+                                          onClick={handleSyncFlows}
+                                          className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-855 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                        >
+                                          <RefreshCw className="h-3.5 w-3.5" /> Sync
+                                        </button>
+                                      </div>
+                                      {!configFlowId && (
+                                        <p className="text-[9px] text-amber-400 mt-1">⚠️ No flow selected — sync from Meta first or select an existing flow.</p>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Message Body</label>
+                                      <textarea
+                                        value={configFlowBody}
+                                        onChange={e => setConfigFlowBody(e.target.value)}
+                                        rows={2}
+                                        placeholder="Fill out your details to get started!"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none resize-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">CTA Button Label</label>
+                                      <input
+                                        type="text"
+                                        value={configFlowCta}
+                                        onChange={e => setConfigFlowCta(e.target.value)}
+                                        placeholder="Open Form"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Opening Screen ID</label>
+                                      <input
+                                        type="text"
+                                        value={configFlowScreen}
+                                        onChange={e => setConfigFlowScreen(e.target.value)}
+                                        placeholder="SCREEN_ONE"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                                      />
+                                    </div>
                                   </div>
                                 )}
                               </div>
