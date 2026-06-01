@@ -131,14 +131,14 @@ export default function ContactsPage() {
           
           {/* Internal search input */}
           <div className="p-4 border-b border-zinc-800/80 bg-zinc-950/20 flex items-center">
-            <div className="relative max-w-xs w-full">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+            <div className="flex items-center max-w-xs w-full bg-zinc-900 rounded-lg px-3 h-[30px]">
+              <Search className="h-4 w-4 text-zinc-500 shrink-0" />
               <input
                 type="text"
                 placeholder="Search CRM by name, label..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-4 text-xs text-zinc-100 focus:outline-none focus:border-zinc-700 transition-colors"
+                className="w-full bg-transparent border-none focus:outline-none text-xs text-zinc-100 placeholder:text-zinc-500 ml-2 h-full flex-1"
               />
             </div>
           </div>
