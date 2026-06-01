@@ -38,9 +38,12 @@ export async function POST(request: Request) {
           }
         ];
       }
-    } else if (type === 'image' && mediaUrl) {
+    } else if (type === 'image' && (mediaUrl || mediaId)) {
       payload.type = 'image';
-      payload.image = {
+      payload.image = mediaId ? {
+        id: mediaId,
+        caption: body || ''
+      } : {
         link: mediaUrl,
         caption: body || ''
       };

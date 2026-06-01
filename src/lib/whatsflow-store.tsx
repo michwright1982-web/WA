@@ -117,7 +117,7 @@ interface WhatsFlowContextType {
   updateAccount: (id: string, account: Omit<WhatsAppAccount, 'id' | 'status' | 'createdAt'>) => void;
   deleteAccount: (id: string) => void;
   sendTextMessage: (contactId: string, body: string) => void;
-  sendMediaMessage: (contactId: string, mediaUrl: string, body: string) => void;
+  sendMediaMessage: (contactId: string, mediaUrl: string, body: string, mediaId?: string) => void;
   sendDocumentMessage: (contactId: string, mediaUrl: string, fileName: string, mediaId?: string) => void;
   sendVoiceMessage: (contactId: string, mediaUrl: string, duration: string) => void;
   sendButtonMessage: (contactId: string, body: string, buttons: string[]) => void;
@@ -648,7 +648,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     sendMessageToMeta(newMsg);
   };
 
-  const sendMediaMessage = (cId: string, mediaUrl: string, body: string) => {
+  const sendMediaMessage = (cId: string, mediaUrl: string, body: string, mediaId?: string) => {
     const newMsg: Message = {
       id: `m-media-${Date.now()}`,
       accountId: activeAccountId,
@@ -656,12 +656,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       type: 'image',
       body,
       mediaUrl,
+      mediaId,
       direction: 'OUTGOING',
       status: 'sent',
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    sendMessageToMeta(newMsg);
+    sendMessageToMeta(newMsg, mediaId ? { mediaId } : {});
   };
 
   const sendDocumentMessage = (cId: string, mediaUrl: string, fileName: string, mediaId?: string) => {

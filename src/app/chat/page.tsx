@@ -31,7 +31,8 @@ import {
   ShieldCheck,
   ShieldX,
   History,
-  Trash2
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function ChatPage() {
@@ -46,6 +47,7 @@ export default function ChatPage() {
     sendTextMessage, 
     sendButtonMessage,
     sendTemplateMessage,
+    sendMediaMessage,
     sendDocumentMessage,
     sendVoiceMessage,
     updateContact,
@@ -110,8 +112,7 @@ export default function ChatPage() {
   const [btnLabels, setBtnLabels] = useState(['Yes, confirm', 'No, cancel']);
   
   // Document sharing state
-  const [showDocModal, setShowDocModal] = useState(false);
-  const [docName, setDocName] = useState('');
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
@@ -196,13 +197,11 @@ export default function ChatPage() {
     setVoiceDuration(0);
   };
 
-  const handleSendDocument = async () => {
-    if (!selectedDocFile) return;
-
+  const handleSendDocument = async (file: File) => {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', selectedDocFile);
+      formData.append('file', file);
       if (activeAccount) {
         formData.append('phoneNumberId', activeAccount.phoneNumberId);
         formData.append('accessToken', activeAccount.accessToken);
@@ -219,18 +218,20 @@ export default function ChatPage() {
       }
 
       const data = await res.json();
-      const name = docName || selectedDocFile.name;
+      const name = file.name;
       const finalUrl = data.mediaUrl ? window.location.origin + data.mediaUrl : '';
 
-      sendDocumentMessage(activeContactId, finalUrl, name, data.mediaId);
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        sendMediaMessage(activeContactId, finalUrl, '', data.mediaId);
+      } else {
+        sendDocumentMessage(activeContactId, finalUrl, name, data.mediaId);
+      }
     } catch (err: any) {
       console.error('Error sharing document:', err);
       alert(err.message || 'Error occurred while sharing document.');
     } finally {
       setIsUploading(false);
-      setShowDocModal(false);
-      setSelectedDocFile(null);
-      setDocName('');
+      setShowAttachMenu(false);
     }
   };
 
@@ -755,49 +756,80 @@ export default function ChatPage() {
           </div>
 
           {/* Dialog Action bar */}
-          <div className="p-4 border-t border-zinc-800 bg-zinc-950/30 flex flex-col gap-3 relative">
-            
-            {/* Quick Attachment panel shortcuts */}
-            <div className="flex gap-2">
+          <div className="p-2.5 px-4 border-t border-zinc-800 bg-[#202c33] flex items-center gap-2 relative z-50">
+            {isRecordingVoice ? (
+              // Recording UI state
+              <div className="flex-1 flex items-center justify-between bg-[#2a3942] rounded-full px-4 py-2 text-emerald-500 animate-pulse border border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4.5 w-4.5" />
+                  <span className="text-sm font-medium text-emerald-400">
+                    {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+                <span className="text-xs text-zinc-400">Recording voice message...</span>
+              </div>
+            ) : (
+              <>
+                {/* Attachment Menu Toggle (Plus) */}
+                <div className="relative flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachMenu(!showAttachMenu);
+                      setShowTmplSelect(false);
+                      setShowBtnModal(false);
+                    }}
+                    disabled={contacts.length === 0 || isUploading}
+                    className={`p-2 text-zinc-400 transition-colors shrink-0 flex items-center justify-center ${contacts.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:text-zinc-200 cursor-pointer'} ${showAttachMenu ? 'bg-zinc-800 rounded-full text-zinc-200' : ''}`}
+                    title="Attach"
+                  >
+                    <Plus className={`h-6 w-6 stroke-[2] transition-transform ${showAttachMenu ? 'rotate-45' : ''} ${isUploading ? 'animate-spin opacity-50' : ''}`} />
+                  </button>
 
-              <button 
-                onClick={() => {
-                  setShowDocModal(!showDocModal);
-                  setShowTmplSelect(false);
-                  setShowBtnModal(false);
-                }}
-                disabled={contacts.length === 0}
-                className={`text-xs flex items-center gap-1.5 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors ${
-                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed hover:border-zinc-800 hover:text-zinc-400' : 'hover:border-zinc-700'
-                }`}
-              >
-                <FileText className="h-3.5 w-3.5 text-indigo-400" /> Share Document
-              </button>
-              <button 
-                type="button"
-                onClick={handleToggleVoiceRecording}
-                disabled={contacts.length === 0}
-                className={`text-xs flex items-center gap-1.5 px-3 py-1 border rounded-lg transition-colors ${
-                  contacts.length === 0 
-                    ? 'opacity-50 cursor-not-allowed bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:border-zinc-800 hover:text-zinc-400' 
-                    : isRecordingVoice 
-                      ? 'bg-rose-500/10 border-rose-500/20 text-rose-450 hover:bg-rose-500/20' 
-                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Mic className={`h-3.5 w-3.5 ${isRecordingVoice ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`} /> 
-                {isRecordingVoice ? `Stop & Send (${Math.floor(voiceDuration / 60)}:${(voiceDuration % 60).toString().padStart(2, '0')})` : 'Voice Mail'}
-              </button>
-              {isRecordingVoice && (
-                <button
-                  type="button"
-                  onClick={handleCancelVoiceRecording}
-                  className="text-xs flex items-center gap-1 px-2.5 py-1 bg-zinc-850 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-250 transition-colors"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
+                  {/* Attachment Popup Menu */}
+                  {showAttachMenu && (
+                    <div className="absolute bottom-14 left-0 mb-2 bg-[#233138] border border-zinc-800 rounded-2xl shadow-xl p-3 z-50 flex flex-col gap-3 min-w-[200px] animate-in fade-in slide-in-from-bottom-2">
+                      
+                      {/* Document Button */}
+                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
+                        <div className="h-11 w-11 rounded-full bg-[#7F66FF] flex items-center justify-center group-hover:bg-[#6c53ed] transition-colors shadow-sm shrink-0">
+                          <FileText className="h-5 w-5 text-white stroke-[2]" />
+                        </div>
+                        <span className="text-[15px] text-zinc-200 group-hover:text-white transition-colors font-medium">Document</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleSendDocument(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+
+                      {/* Photos & Videos Button */}
+                      <label className="flex items-center gap-4 cursor-pointer group w-full hover:bg-zinc-800/50 p-2 rounded-xl transition-colors">
+                        <div className="h-11 w-11 rounded-full bg-[#007BFF] flex items-center justify-center group-hover:bg-[#0069d9] transition-colors shadow-sm shrink-0">
+                          <ImageIcon className="h-5 w-5 text-white stroke-[2]" />
+                        </div>
+                        <span className="text-[15px] text-zinc-200 group-hover:text-white transition-colors font-medium">Photos & videos</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleSendDocument(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Template Selector dropdown panel */}
             {showTmplSelect && (
@@ -852,69 +884,66 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Document sharing configuration modal */}
-            {showDocModal && (
-                <div className="absolute bottom-16 left-4 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-4 z-50 w-80 space-y-3">
-                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase">Share Document Attachment</h4>
-                    <div>
-                        <label className="text-[9px] text-zinc-500 uppercase block mb-0.5">Document File Name</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Price_List.pdf"
-                            value={docName}
-                            onChange={(e) => setDocName(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-855 rounded p-1.5 text-xs text-white"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[9px] text-zinc-500 uppercase block mb-0.5">Select File</label>
-                        <input
-                            type="file"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0] ?? null;
-                                setSelectedDocFile(file);
-                                if (file) setDocName(file.name);
-                            }}
-                            className="w-full bg-zinc-950 border border-zinc-855 rounded p-1.5 text-xs text-white"
-                        />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-1">
-                        <button onClick={() => setShowDocModal(false)} disabled={isUploading} className="text-[10px] text-zinc-450 hover:text-zinc-300 disabled:opacity-50">Cancel</button>
-                        <button
-                          onClick={handleSendDocument}
-                          disabled={isUploading || !selectedDocFile}
-                          className={`text-[10px] bg-white text-black px-2.5 py-1 rounded font-bold transition-all flex items-center gap-1 ${
-                            (isUploading || !selectedDocFile) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 cursor-pointer'
-                          }`}
-                        >
-                          {isUploading ? 'Uploading...' : 'Send Document'}
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Document sharing configuration modal removed for direct upload */}
 
             {/* Keyboard Form Editor */}
-            <form onSubmit={handleSendText} className="flex gap-2">
-              <input
-                type="text"
-                placeholder={contacts.length === 0 ? "No contacts in CRM to message..." : "Type your WhatsApp message..."}
-                value={typedMessage}
-                onChange={(e) => setTypedMessage(e.target.value)}
-                disabled={contacts.length === 0}
-                className={`flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs text-zinc-100 focus:outline-none transition-colors ${
-                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed focus:border-zinc-800' : 'focus:border-zinc-700'
-                }`}
-              />
-              <button 
-                type="submit"
-                disabled={contacts.length === 0}
-                className={`h-10 w-10 bg-white text-black rounded-xl flex items-center justify-center transition-all shadow-md ${
-                  contacts.length === 0 ? 'opacity-50 cursor-not-allowed bg-zinc-400 text-zinc-650' : 'hover:bg-zinc-200 cursor-pointer'
-                }`}
-              >
-                <Send className="h-4.5 w-4.5 stroke-[2.2]" />
-              </button>
-            </form>
+            {!isRecordingVoice && (
+              <form onSubmit={handleSendText} className="flex-1">
+                <input
+                  type="text"
+                  placeholder={contacts.length === 0 ? "No contacts in CRM to message..." : "Type a message"}
+                  value={typedMessage}
+                  onChange={(e) => setTypedMessage(e.target.value)}
+                  disabled={contacts.length === 0}
+                  className="w-full bg-[#2a3942] rounded-lg py-2.5 px-4 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none transition-colors"
+                />
+              </form>
+            )}
+
+            {/* Right Side Buttons (Cancel/Send/Mic) */}
+            {isRecordingVoice ? (
+              <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                <button
+                  type="button"
+                  onClick={handleCancelVoiceRecording}
+                  className="h-10 w-10 flex items-center justify-center text-rose-400 hover:text-rose-300 rounded-full hover:bg-zinc-800 transition-all shadow-sm"
+                  title="Cancel recording"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleVoiceRecording}
+                  className="h-10 w-10 bg-emerald-500 text-white rounded-full flex items-center justify-center hover:bg-emerald-600 transition-all shadow-sm"
+                  title="Send voice mail"
+                >
+                  <Send className="h-5 w-5 stroke-[2] -ml-0.5" />
+                </button>
+              </div>
+            ) : (
+              typedMessage.trim() ? (
+                <button 
+                  type="button"
+                  onClick={handleSendText}
+                  disabled={contacts.length === 0}
+                  className="h-10 w-10 bg-emerald-500 text-white rounded-full flex items-center justify-center hover:bg-emerald-600 transition-all shadow-md shrink-0 ml-1"
+                >
+                  <Send className="h-4.5 w-4.5 stroke-[2.2] -ml-0.5" />
+                </button>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={handleToggleVoiceRecording}
+                  disabled={contacts.length === 0}
+                  className={`h-10 w-10 flex items-center justify-center rounded-full transition-all shrink-0 ml-1 ${
+                    contacts.length === 0 ? 'text-zinc-600 cursor-not-allowed' : 'text-zinc-400 hover:text-zinc-200 cursor-pointer'
+                  }`}
+                  title="Voice message"
+                >
+                  <Mic className="h-6 w-6 stroke-[2]" />
+                </button>
+              )
+            )}
           </div>
 
         </div>
