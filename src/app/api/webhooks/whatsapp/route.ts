@@ -12,8 +12,10 @@ declare global {
   // eslint-disable-next-line no-var
   var __whatsflow_automation_config: {
     workflow: any | null;
+    workflows?: any[];
     templates: any[];
     account: any | null;
+    accounts?: any[];
     contacts: any[];
   } | undefined;
 }
