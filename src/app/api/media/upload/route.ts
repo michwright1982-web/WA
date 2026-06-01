@@ -39,6 +39,7 @@ export async function POST(request: Request) {
 
     // 2. If valid Meta credentials are provided, upload to Meta
     const isMockToken = !accessToken || accessToken.startsWith('EAAGb...') || accessToken.length < 20;
+    let metaError: any = null;
 
     if (phoneNumberId && accessToken && !isMockToken) {
       console.log('Uploading file to Meta API for phoneNumberId:', phoneNumberId);
@@ -50,6 +51,11 @@ export async function POST(request: Request) {
       // Use standard web File from the parsed buffer
       let mimeType = file.type || 'application/pdf';
       let metaFileName = safeName;
+
+      // Clean up codec parameters (e.g. "audio/ogg;codecs=opus" -> "audio/ogg")
+      if (mimeType.includes(';')) {
+        mimeType = mimeType.split(';')[0].trim();
+      }
 
       // Chrome/Firefox capture in webm, but Meta requires audio/ogg (for voice notes) or audio/aac/mp3/mp4
       if (mimeType.includes('audio/webm') || mimeType.includes('video/webm')) {
@@ -77,16 +83,19 @@ export async function POST(request: Request) {
           mediaId = data.id;
         } else {
           console.error('Meta upload failed:', data);
+          metaError = data.error || data;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error contacting Meta media API:', err);
+        metaError = err.message || err;
       }
     }
 
     return NextResponse.json({
       success: true,
       mediaUrl,
-      mediaId
+      mediaId,
+      metaError
     }, { status: 200 });
 
   } catch (error: any) {

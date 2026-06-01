@@ -38,30 +38,48 @@ export async function POST(request: Request) {
           }
         ];
       }
-    } else if (type === 'image' && (mediaUrl || mediaId)) {
+    }
+    let finalMediaUrl = mediaUrl;
+    if (mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'))) {
+      const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+      const proto = request.headers.get('x-forwarded-proto') || 'http';
+      if (host) {
+        try {
+          const urlObj = new URL(mediaUrl);
+          urlObj.protocol = proto.includes(',') ? proto.split(',')[0].trim() : proto;
+          urlObj.host = host.includes(',') ? host.split(',')[0].trim() : host;
+          finalMediaUrl = urlObj.toString();
+          console.log(`[URLRewriter] Automatically rewrote local media URL to public address: ${finalMediaUrl}`);
+        } catch (e) {
+          console.warn('[URLRewriter] Failed to parse mediaUrl for rewrite:', e);
+        }
+      }
+    }
+
+    if (type === 'image' && (finalMediaUrl || mediaId)) {
       payload.type = 'image';
       payload.image = mediaId ? {
         id: mediaId,
         caption: body || ''
       } : {
-        link: mediaUrl,
+        link: finalMediaUrl,
         caption: body || ''
       };
-    } else if (type === 'document' && (mediaUrl || mediaId)) {
+    } else if (type === 'document' && (finalMediaUrl || mediaId)) {
       payload.type = 'document';
       payload.document = mediaId ? {
         id: mediaId,
         filename: body || 'document.pdf'
       } : {
-        link: mediaUrl,
+        link: finalMediaUrl,
         filename: body || 'document.pdf'
       };
-    } else if (type === 'voice' && (mediaUrl || mediaId)) {
+    } else if (type === 'voice' && (finalMediaUrl || mediaId)) {
       payload.type = 'audio';
       payload.audio = mediaId ? {
         id: mediaId
       } : {
-        link: mediaUrl
+        link: finalMediaUrl
       };
     } else if (type === 'button' && buttons && buttons.length > 0) {
       payload.type = 'interactive';
