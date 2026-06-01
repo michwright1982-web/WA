@@ -138,7 +138,7 @@ export async function POST(request: Request) {
             let targetWorkflow = config?.workflow;
             if (config?.workflows && config.workflows.length > 0) {
                // For now, use the globally active workflow if no specific per-account routing is defined
-               const activeWf = config.workflows.find(w => w.status === 'ACTIVE');
+               const activeWf = config.workflows.find(w => w.status === 'ACTIVE' && (!w.accountId || w.accountId === targetAccount?.id));
                if (activeWf) targetWorkflow = activeWf;
             }
 

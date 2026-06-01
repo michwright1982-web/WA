@@ -53,6 +53,7 @@ export interface Message {
 
 export interface Template {
   id: string;
+  accountId?: string;
   name: string;
   category: 'UTILITY' | 'MARKETING' | 'AUTHENTICATION';
   language: string;
@@ -64,6 +65,7 @@ export interface Template {
 
 export interface WhatsAppFlow {
   id: string;
+  accountId?: string;
   name: string;
   status: string;
   categories: string[];
@@ -91,6 +93,7 @@ export interface FlowEdge {
 
 export interface Workflow {
   id: string;
+  accountId?: string;
   name: string;
   status: 'ACTIVE' | 'INACTIVE';
   nodes: FlowNode[];
@@ -188,14 +191,15 @@ const SEED_MESSAGES: Message[] = [
 ];
 
 const SEED_TEMPLATES: Template[] = [
-  { id: 't-1', name: 'welcome_onboarding', category: 'MARKETING', language: 'en_US', status: 'APPROVED', bodyText: 'Hi {{1}}, welcome aboard! We are excited to support your communication journey.', buttons: ['Get Started', 'Contact Sales'], createdAt: '2026-05-20T10:00:00Z' },
-  { id: 't-2', name: 'payment_reminder', category: 'UTILITY', language: 'en_US', status: 'APPROVED', bodyText: 'Dear {{1}}, this is a quick reminder that invoice {{2}} is due tomorrow. Total: {{3}}.', createdAt: '2026-05-22T14:30:00Z' },
-  { id: 't-3', name: 'verification_otp', category: 'AUTHENTICATION', language: 'en_US', status: 'APPROVED', bodyText: 'Your WhatsFlow verification code is: {{1}}. Do not share this code.', createdAt: '2026-05-25T09:12:00Z' }
+  { id: 't-1', accountId: 'acc-1', name: 'welcome_onboarding', category: 'MARKETING', language: 'en_US', status: 'APPROVED', bodyText: 'Hi {{1}}, welcome aboard! We are excited to support your communication journey.', buttons: ['Get Started', 'Contact Sales'], createdAt: '2026-05-20T10:00:00Z' },
+  { id: 't-2', accountId: 'acc-1', name: 'payment_reminder', category: 'UTILITY', language: 'en_US', status: 'APPROVED', bodyText: 'Dear {{1}}, this is a quick reminder that invoice {{2}} is due tomorrow. Total: {{3}}.', createdAt: '2026-05-22T14:30:00Z' },
+  { id: 't-3', accountId: 'acc-1', name: 'verification_otp', category: 'AUTHENTICATION', language: 'en_US', status: 'APPROVED', bodyText: 'Your WhatsFlow verification code is: {{1}}. Do not share this code.', createdAt: '2026-05-25T09:12:00Z' }
 ];
 
 const SEED_FLOWS: WhatsAppFlow[] = [
   {
     id: '775192158724649',
+    accountId: 'acc-1',
     name: 'Lead Qualification Survey',
     status: 'PUBLISHED',
     categories: ['MARKETING'],
@@ -203,6 +207,7 @@ const SEED_FLOWS: WhatsAppFlow[] = [
   },
   {
     id: '881729481928374',
+    accountId: 'acc-1',
     name: 'Appointment Booking Flow',
     status: 'DRAFT',
     categories: ['UTILITY'],
@@ -213,6 +218,7 @@ const SEED_FLOWS: WhatsAppFlow[] = [
 const SEED_WORKFLOWS: Workflow[] = [
   {
     id: 'w-1',
+    accountId: 'acc-1',
     name: 'AI Agent Auto-Responder',
     status: 'ACTIVE',
     nodes: [
@@ -722,7 +728,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addTemplate = (tmpl: Omit<Template, 'id' | 'createdAt'>) => {
-    setTemplates(prev => [...prev, { ...tmpl, id: `t-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, createdAt: new Date().toISOString() }]);
+    setTemplates(prev => [...prev, { ...tmpl, id: `t-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, accountId: activeAccountId, createdAt: new Date().toISOString() }]);
   };
 
   const deleteTemplate = (id: string) => {
@@ -730,7 +736,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addFlow = (flow: Omit<WhatsAppFlow, 'createdAt'>) => {
-    setFlows(prev => [...prev, { ...flow, id: flow.id, createdAt: new Date().toISOString() }]);
+    setFlows(prev => [...prev, { ...flow, id: flow.id, accountId: activeAccountId, createdAt: new Date().toISOString() }]);
   };
 
   const deleteFlow = (id: string) => {
@@ -741,6 +747,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newWorkflow: Workflow = {
       ...flow,
       id: `w-${Date.now()}`,
+      accountId: activeAccountId,
       createdAt: new Date().toISOString()
     };
     setWorkflows(prev => {
@@ -824,9 +831,9 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       accounts,
       contacts: contacts.filter(c => !c.accountId || c.accountId === activeAccountId),
       messages: messages.filter(m => !m.accountId || m.accountId === activeAccountId),
-      templates,
-      flows,
-      workflows,
+      templates: templates.filter(t => !t.accountId || t.accountId === activeAccountId),
+      flows: flows.filter(f => !f.accountId || f.accountId === activeAccountId),
+      workflows: workflows.filter(w => !w.accountId || w.accountId === activeAccountId),
       activeAccountId,
       setActiveAccountId,
       activeContactId,
