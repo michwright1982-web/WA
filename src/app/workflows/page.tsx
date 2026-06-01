@@ -2099,7 +2099,7 @@ export default function WorkflowsPage() {
                                               if (!configFlowBody) setConfigFlowBody(`Please fill in the details for ${matchedFlow.name} to continue.`);
                                               if (!configFlowCta || configFlowCta === 'Open Form') setConfigFlowCta(`Open Form`);
                                               if (!configFlowScreen) setConfigFlowScreen('SCREEN_ONE');
-                                              if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{\n  "source": "automation"\n}');
+                                              if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{}');
                                             }
                                           }}
                                           className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
@@ -2176,7 +2176,7 @@ export default function WorkflowsPage() {
                                           if (!configFlowBody) setConfigFlowBody(`Please fill in the details for ${matchedFlow.name} to continue.`);
                                           if (!configFlowCta || configFlowCta === 'Open Form') setConfigFlowCta(`Open Form`);
                                           if (!configFlowScreen) setConfigFlowScreen('SCREEN_ONE');
-                                          if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{\n  "source": "automation"\n}');
+                                          if (!configFlowPayload || configFlowPayload === '{}') setConfigFlowPayload('{}');
                                         }
                                       }}
                                       className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none cursor-pointer"
