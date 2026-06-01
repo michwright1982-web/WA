@@ -17,7 +17,16 @@ import {
 } from 'lucide-react';
 
 export default function ContactsPage() {
-  const { contacts, addContact, updateContact, deleteContact, setActiveContactId } = useWhatsFlow();
+  const { 
+    contacts, 
+    addContact, 
+    updateContact, 
+    deleteContact, 
+    setActiveContactId,
+    customCrmFields,
+    addCustomCrmField,
+    deleteCustomCrmField
+  } = useWhatsFlow();
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +38,9 @@ export default function ContactsPage() {
   const [email, setEmail] = useState('');
   const [labelInput, setLabelInput] = useState<string>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+
+  const [newCustomFieldName, setNewCustomFieldName] = useState('');
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
   const filtered = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -43,6 +55,13 @@ export default function ContactsPage() {
     setEmail('');
     setLabelInput('');
     setStatus('active');
+    
+    const values: Record<string, string> = {};
+    customCrmFields.forEach(field => {
+      values[field] = '';
+    });
+    setCustomValues(values);
+    
     setShowAddModal(true);
   };
 
@@ -53,6 +72,13 @@ export default function ContactsPage() {
     setEmail(ct.email || '');
     setLabelInput(ct.label || '');
     setStatus(ct.status);
+    
+    const values: Record<string, string> = {};
+    customCrmFields.forEach(field => {
+      values[field] = ct[field] || '';
+    });
+    setCustomValues(values);
+    
     setShowAddModal(true);
   };
 
@@ -65,7 +91,8 @@ export default function ContactsPage() {
       phoneNumber: phone,
       email: email || undefined,
       label: labelInput || undefined,
-      status
+      status,
+      ...customValues
     };
 
     if (editContactId) {
@@ -79,13 +106,20 @@ export default function ContactsPage() {
     setEmail('');
     setLabelInput('');
     setStatus('active');
+    setCustomValues({});
     setEditContactId(null);
     setShowAddModal(false);
   };
 
   const handleExportCSV = () => {
-    const headers = 'Name,Phone,Email,Label,Status\n';
-    const rows = contacts.map(c => `"${c.name}","${c.phoneNumber}","${c.email || ''}","${c.label || ''}","${c.status}"`).join('\n');
+    const customHeaders = customCrmFields.length > 0 ? `,${customCrmFields.map(f => f.toUpperCase()).join(',')}` : '';
+    const headers = `Name,Phone,Email,Label,Status${customHeaders}\n`;
+    const rows = contacts.map(c => {
+      const customRowData = customCrmFields.length > 0 
+        ? `,${customCrmFields.map(f => `"${(c as any)[f] || ''}"`).join(',')}` 
+        : '';
+      return `"${c.name}","${c.phoneNumber}","${c.email || ''}","${c.label || ''}","${c.status}"${customRowData}`;
+    }).join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -126,6 +160,67 @@ export default function ContactsPage() {
           </div>
         </div>
 
+        {/* Custom Fields Settings Panel */}
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 space-y-4 backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-3">
+            <div>
+              <h3 className="text-xs font-bold text-zinc-200">Custom Contact Fields</h3>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Manage additional variables for custom fields in CRM and automated workflows</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="New field name..."
+                value={newCustomFieldName}
+                onChange={(e) => setNewCustomFieldName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (newCustomFieldName.trim()) {
+                      addCustomCrmField(newCustomFieldName);
+                      setNewCustomFieldName('');
+                    }
+                  }
+                }}
+                className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-zinc-700 placeholder:text-zinc-600 h-[30px] w-40"
+              />
+              <button
+                onClick={() => {
+                  if (newCustomFieldName.trim()) {
+                    addCustomCrmField(newCustomFieldName);
+                    setNewCustomFieldName('');
+                  }
+                }}
+                className="text-[11px] bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg font-bold transition-all shadow-md h-[30px] flex items-center justify-center"
+              >
+                Add Field
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {customCrmFields.length === 0 ? (
+              <p className="text-[11px] text-zinc-500">No custom fields defined. Add one above.</p>
+            ) : (
+              customCrmFields.map(field => (
+                <div 
+                  key={field} 
+                  className="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-lg text-xs text-zinc-300 transition-colors"
+                >
+                  <span className="font-semibold">{field}</span>
+                  <button
+                    onClick={() => deleteCustomCrmField(field)}
+                    className="text-zinc-500 hover:text-red-400 transition-colors p-0.5"
+                    title={`Delete custom field "${field}"`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Directory Listings Table Grid */}
         <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl overflow-hidden backdrop-blur-md">
           
@@ -153,6 +248,9 @@ export default function ContactsPage() {
                   <th className="p-4">Email</th>
                   <th className="p-4">Assigned Label</th>
                   <th className="p-4">Qualified Status</th>
+                  {customCrmFields.map(field => (
+                    <th key={field} className="p-4 capitalize">{field.replace(/_/g, ' ')}</th>
+                  ))}
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -199,6 +297,11 @@ export default function ContactsPage() {
                         {ct.leadStatus === 'qualified' ? '✓ Qualified' : ct.leadStatus === 'not_qualified' ? '✗ Not Qualified' : '● New'}
                       </button>
                     </td>
+                    {customCrmFields.map(field => (
+                      <td key={field} className="p-4 text-zinc-400">
+                        {(ct as any)[field] || '—'}
+                      </td>
+                    ))}
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -294,6 +397,21 @@ export default function ContactsPage() {
                     <option value="inactive">Not Qualified</option>
                   </select>
                 </div>
+
+                {customCrmFields.map(field => (
+                  <div key={field}>
+                    <label className="text-xs text-zinc-400 block mb-1 capitalize">
+                      {field.replace(/_/g, ' ')}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={`Enter ${field.replace(/_/g, ' ')}`}
+                      value={customValues[field] || ''}
+                      onChange={(e) => setCustomValues(prev => ({ ...prev, [field]: e.target.value }))}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs text-white focus:outline-none focus:border-zinc-700"
+                    />
+                  </div>
+                ))}
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
                   <button 

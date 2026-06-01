@@ -142,6 +142,10 @@ interface WhatsFlowContextType {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   toggleTheme: () => void;
+
+  customCrmFields: string[];
+  addCustomCrmField: (fieldName: string) => void;
+  deleteCustomCrmField: (fieldName: string) => void;
 }
 
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
@@ -251,6 +255,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeAccountId, setActiveAccountId] = useState<string>('');
   const [activeContactId, setActiveContactId] = useState<string>('');
   const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
+  const [customCrmFields, setCustomCrmFields] = useState<string[]>([]);
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -301,6 +306,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const storedTheme = localStorage.getItem('whatsflow_theme');
       setThemeState((storedTheme as 'light' | 'dark') || 'dark');
+
+      const storedCustomFields = localStorage.getItem('whatsflow_custom_crm_fields');
+      try {
+        setCustomCrmFields(storedCustomFields ? JSON.parse(storedCustomFields) : ['company', 'industry']);
+      } catch (e) {
+        setCustomCrmFields(['company', 'industry']);
+      }
 
       setHasLoaded(true);
     }
@@ -880,6 +892,25 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTheme(nextTheme);
   };
 
+  const addCustomCrmField = (name: string) => {
+    const cleaned = name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    if (!cleaned) return;
+    setCustomCrmFields(prev => {
+      if (prev.includes(cleaned)) return prev;
+      const next = [...prev, cleaned];
+      localStorage.setItem('whatsflow_custom_crm_fields', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteCustomCrmField = (name: string) => {
+    setCustomCrmFields(prev => {
+      const next = prev.filter(f => f !== name);
+      localStorage.setItem('whatsflow_custom_crm_fields', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <WhatsFlowContext.Provider value={{
       accounts,
@@ -913,12 +944,14 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       deleteWorkflow,
       renameWorkflow,
       toggleWorkflowStatus,
-
       addInteraction,
       clearChat,
       theme,
       setTheme,
-      toggleTheme
+      toggleTheme,
+      customCrmFields,
+      addCustomCrmField,
+      deleteCustomCrmField
     }}>
       {hasLoaded ? children : null}
     </WhatsFlowContext.Provider>

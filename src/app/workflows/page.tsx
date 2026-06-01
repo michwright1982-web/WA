@@ -106,7 +106,7 @@ const getNodeIcon = (subType: string, type: string) => {
 };
 
 export default function WorkflowsPage() {
-  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId, contacts } = useWhatsFlow();
+  const { workflows, updateWorkflow, toggleWorkflowStatus, templates, flows, addFlow, addWorkflow, deleteWorkflow, renameWorkflow, accounts, activeAccountId, contacts, customCrmFields } = useWhatsFlow();
   const [selectedFlowId, setSelectedFlowId] = useState('');
 
   // Restore active workflow selection from localStorage, but only if it belongs to the current account's workflows
@@ -2449,7 +2449,7 @@ export default function WorkflowsPage() {
                                   <label className="text-[9px] text-zinc-500 uppercase font-bold block">CRM Fields Mappings</label>
                                   <button
                                     type="button"
-                                    onClick={() => setConfigCrmFields([...configCrmFields, { key: 'name', value: '', isCustom: false }])}
+                                    onClick={() => setConfigCrmFields([...configCrmFields, { key: 'name', value: '' }])}
                                     className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 rounded px-2 py-1 transition-all cursor-pointer"
                                   >
                                     <Plus className="h-2.5 w-2.5" /> ADD FIELD
@@ -2463,7 +2463,6 @@ export default function WorkflowsPage() {
                                 ) : (
                                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                                     {configCrmFields.map((field, idx) => {
-                                      const isCustomType = field.isCustom;
                                       return (
                                         <div key={idx} className="bg-zinc-950 border border-zinc-900 rounded-xl p-3 space-y-2 relative animate-in fade-in slide-in-from-top-1">
                                           <button
@@ -2475,50 +2474,31 @@ export default function WorkflowsPage() {
                                             <Trash2 className="h-3 w-3" />
                                           </button>
 
-                                          <div className="grid grid-cols-2 gap-2 pr-5">
-                                            <div>
-                                              <label className="text-[8px] text-zinc-500 block mb-0.5">Field Type</label>
-                                              <select
-                                                value={isCustomType ? 'custom' : field.key}
-                                                onChange={(e) => {
-                                                  const val = e.target.value;
-                                                  const isCust = val === 'custom';
-                                                  const updated = [...configCrmFields];
-                                                  updated[idx] = { ...updated[idx], key: isCust ? 'custom_field' : val, isCustom: isCust };
-                                                  setConfigCrmFields(updated);
-                                                }}
-                                                className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                                              >
-                                                <option value="name">Name (Standard)</option>
-                                                <option value="email">Email (Standard)</option>
-                                                <option value="label">Label (Standard)</option>
-                                                <option value="leadStatus">Lead Status (Standard)</option>
-                                                <option value="custom">Custom Field...</option>
-                                              </select>
-                                            </div>
-
-                                            {isCustomType && (
-                                              <div>
-                                                <label className="text-[8px] text-zinc-500 block mb-0.5">Custom Field Name</label>
-                                                <input
-                                                  type="text"
-                                                  placeholder="e.g. company_size"
-                                                  value={field.key}
-                                                  onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
-                                                    const updated = [...configCrmFields];
-                                                    updated[idx] = { ...updated[idx], key: val };
-                                                    setConfigCrmFields(updated);
-                                                  }}
-                                                  className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                                                />
-                                              </div>
-                                            )}
+                                          <div className="pr-5">
+                                            <label className="text-[8px] text-zinc-500 block mb-0.5">CRM Contact Field</label>
+                                            <select
+                                              value={field.key}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                const updated = [...configCrmFields];
+                                                updated[idx] = { ...updated[idx], key: val };
+                                                setConfigCrmFields(updated);
+                                              }}
+                                              className="w-full bg-zinc-900 border border-zinc-800 rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                                            >
+                                              <option value="name">Name (Standard)</option>
+                                              <option value="email">Email (Standard)</option>
+                                              <option value="label">Label (Standard)</option>
+                                              <option value="leadStatus">Lead Status (Standard)</option>
+                                              {customCrmFields.map(f => (
+                                                <option key={f} value={f}>{f.replace(/_/g, ' ')} (Custom)</option>
+                                              ))}
+                                            </select>
                                           </div>
 
                                           <div>
                                             <label className="text-[8px] text-zinc-500 block mb-0.5">Value (Supports variables)</label>
-                                            {field.key === 'leadStatus' && !isCustomType ? (
+                                            {field.key === 'leadStatus' ? (
                                               <select
                                                 value={field.value}
                                                 onChange={(e) => {
