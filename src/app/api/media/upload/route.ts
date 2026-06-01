@@ -48,9 +48,18 @@ export async function POST(request: Request) {
       metaFormData.append('messaging_product', 'whatsapp');
       
       // Use standard web File from the parsed buffer
-      const fileBlob = new Blob([buffer], { type: file.type || 'application/pdf' });
-      metaFormData.append('file', fileBlob, safeName);
-      metaFormData.append('type', file.type || 'application/pdf');
+      let mimeType = file.type || 'application/pdf';
+      let metaFileName = safeName;
+
+      // Chrome/Firefox capture in webm, but Meta requires audio/ogg (for voice notes) or audio/aac/mp3/mp4
+      if (mimeType.includes('audio/webm') || mimeType.includes('video/webm')) {
+        mimeType = 'audio/ogg';
+        metaFileName = safeName.replace(/\.[^/.]+$/, "") + ".ogg";
+      }
+
+      const fileBlob = new Blob([buffer], { type: mimeType });
+      metaFormData.append('file', fileBlob, metaFileName);
+      metaFormData.append('type', mimeType);
 
       try {
         const response = await fetch(metaUrl, {

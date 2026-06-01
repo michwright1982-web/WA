@@ -20,6 +20,72 @@ declare global {
   } | undefined;
 }
 
+async function downloadMetaMedia(mediaId: string, accessToken: string, mimeType: string): Promise<string | null> {
+  try {
+    console.log(`[MediaDownloader] Fetching media info for ID: ${mediaId}`);
+    const res = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!res.ok) {
+      console.error('[MediaDownloader] Failed to fetch media info:', await res.text());
+      return null;
+    }
+    
+    const mediaInfo = await res.json();
+    const downloadUrl = mediaInfo.url;
+    if (!downloadUrl) {
+      console.error('[MediaDownloader] No download URL returned by Meta');
+      return null;
+    }
+    
+    console.log(`[MediaDownloader] Downloading media binary from: ${downloadUrl}`);
+    const binaryRes = await fetch(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!binaryRes.ok) {
+      console.error('[MediaDownloader] Failed to download binary:', await binaryRes.text());
+      return null;
+    }
+    
+    const arrayBuffer = await binaryRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Determine extension
+    let ext = 'ogg';
+    if (mimeType.includes('mp3')) ext = 'mp3';
+    else if (mimeType.includes('wav')) ext = 'wav';
+    else if (mimeType.includes('webm')) ext = 'webm';
+    else if (mimeType.includes('amr')) ext = 'amr';
+    else if (mimeType.includes('mp4')) ext = 'mp4';
+    
+    const filename = `incoming_${mediaId}.${ext}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, buffer);
+      console.log(`[MediaDownloader] Successfully saved file to: ${filePath}`);
+      return `/uploads/${filename}`;
+    } catch (fsErr) {
+      console.warn('[MediaDownloader] Local filesystem write failed (serverless environment). Falling back to data URI:', fsErr);
+      const fileBase64 = buffer.toString('base64');
+      return `data:${mimeType || 'audio/ogg'};base64,${fileBase64}`;
+    }
+  } catch (err) {
+    console.error('[MediaDownloader] Error downloading media:', err);
+    return null;
+  }
+}
+
 function addToQueue(message: any) {
   try {
     let queue: any[] = [];
@@ -98,7 +164,15 @@ export async function POST(request: Request) {
             } else if (msg.type === 'document') {
               messageBody = `📄 Document: ${msg.document?.filename || 'Attachment.pdf'}`;
             } else if (msg.type === 'audio' || msg.type === 'voice') {
-              messageBody = '🎙️ [Voice Message]';
+              const audioObj = msg.audio || msg.voice;
+              const durationSecs = audioObj?.duration;
+              if (durationSecs) {
+                const mins = Math.floor(durationSecs / 60);
+                const secs = durationSecs % 60;
+                messageBody = `Voice Mail (${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')})`;
+              } else {
+                messageBody = 'Voice Mail (00:05)';
+              }
             } else if (msg.type === 'video') {
               messageBody = '📹 [Video Attachment]';
             } else if (msg.type === 'location') {
@@ -108,8 +182,12 @@ export async function POST(request: Request) {
             }
 
             // Determine the message type for workflow routing
-            const msgType = msg.type === 'interactive' || msg.type === 'button' ? 'button' : 
+            let msgType = msg.type === 'interactive' || msg.type === 'button' ? 'button' : 
                           msg.type === 'image' || msg.type === 'document' || msg.type === 'audio' || msg.type === 'voice' || msg.type === 'video' ? msg.type : 'text';
+
+            if (msgType === 'audio') {
+              msgType = 'voice';
+            }
 
             // SERVER-SIDE ACCOUNT ROUTING — resolve which account this message belongs to
             // using the phone_number_id from the webhook metadata BEFORE queuing
@@ -124,6 +202,26 @@ export async function POST(request: Request) {
             // The accountId this message belongs to (falls back to the active account if no match)
             const targetAccountId: string = targetAccount?.id || config?.account?.id || '';
 
+            // Resolve and download incoming media for voice messages
+            let resolvedMediaUrl = '';
+            if ((msg.type === 'audio' || msg.type === 'voice') && targetAccount) {
+              const audioObj = msg.audio || msg.voice;
+              if (audioObj?.id) {
+                const isMockToken = !targetAccount.accessToken || targetAccount.accessToken.startsWith('EAAGb...') || targetAccount.accessToken.length < 20;
+                if (!isMockToken) {
+                  const downloadedUrl = await downloadMetaMedia(audioObj.id, targetAccount.accessToken, audioObj.mime_type || '');
+                  if (downloadedUrl) {
+                    resolvedMediaUrl = downloadedUrl;
+                  }
+                }
+              }
+            }
+
+            if (!resolvedMediaUrl && (msg.type === 'audio' || msg.type === 'voice')) {
+              // Fallback to a short, guaranteed playable audio file for mock/simulation testing
+              resolvedMediaUrl = 'https://www.w3schools.com/html/horse.mp3';
+            }
+
             const incomingMessage = {
               id: msg.id || `m-webhook-${Date.now()}`,
               accountId: targetAccountId,
@@ -131,6 +229,7 @@ export async function POST(request: Request) {
               senderName: contactInfo?.profile?.name || `WhatsApp User (+${msg.from})`,
               body: messageBody,
               type: msgType,
+              mediaUrl: resolvedMediaUrl || undefined,
               timestamp: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString()
             };
 

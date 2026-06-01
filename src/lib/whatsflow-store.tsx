@@ -477,6 +477,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   contactId: contact.id,
                   type: msgType,
                   body: item.body,
+                  mediaUrl: item.mediaUrl,
                   direction: 'INCOMING',
                   status: contact.id === activeContactId ? 'read' : 'delivered',
                   timestamp: item.timestamp || new Date().toISOString()
