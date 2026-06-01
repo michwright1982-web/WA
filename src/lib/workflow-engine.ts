@@ -299,6 +299,18 @@ export function executeWorkflow(
           templateParams,
           buttons
         };
+      } else if (sendOption === 'flow') {
+        responseMessage = {
+          type: 'flow',
+          body: targetActionNode.data.config?.flowBody || 'Fill out your details to start!',
+          flowHeader: targetActionNode.data.config?.flowHeader || '',
+          flowFooter: targetActionNode.data.config?.flowFooter || '',
+          flowCta: targetActionNode.data.config?.flowCta || 'Open Flow',
+          flowId: targetActionNode.data.config?.flowId || '',
+          flowToken: targetActionNode.data.config?.flowToken || '',
+          flowScreen: targetActionNode.data.config?.flowScreen || '',
+          flowPayload: targetActionNode.data.config?.flowPayload || '{}'
+        };
       } else {
         if (msgFormat === 'document') {
           responseMessage = {
