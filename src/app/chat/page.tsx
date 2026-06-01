@@ -583,7 +583,7 @@ export default function ChatPage() {
                     <div className={`max-w-[70%] p-3.5 shadow-lg transition-all duration-200 ${
                       isOutgoing 
                         ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none shadow-[0_3px_12px_rgba(16,185,129,0.15)]' 
-                        : 'bg-white text-black rounded-2xl rounded-tl-none shadow-[0_3px_12px_rgba(255,255,255,0.08)]'
+                        : 'bg-white text-zinc-950 rounded-2xl rounded-tl-none shadow-[0_3px_12px_rgba(255,255,255,0.08)]'
                     }`} >
                       
                       {/* Media image render */}
@@ -598,7 +598,7 @@ export default function ChatPage() {
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center justify-between gap-4 ${
                           isOutgoing 
                             ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
-                            : 'bg-zinc-100 border-zinc-200 text-black'
+                            : 'bg-zinc-100 border-zinc-200 text-zinc-900'
                         }`}>
                           <div className="flex items-center gap-2.5 truncate">
                             <div className={`p-2 rounded-lg ${isOutgoing ? 'bg-white/10 text-emerald-250' : 'bg-indigo-500/10 text-indigo-650'}`}>
@@ -616,7 +616,7 @@ export default function ChatPage() {
                             className={`p-1.5 rounded-lg border transition-colors ${
                               isOutgoing 
                                 ? 'bg-white/15 hover:bg-white/25 border-white/20 text-white' 
-                                : 'bg-white hover:bg-zinc-50 border-zinc-300 text-black hover:text-black'
+                                : 'bg-white hover:bg-zinc-50 border-zinc-300 text-zinc-700 hover:text-black'
                             }`}
                             title="Download File"
                           >
@@ -630,7 +630,7 @@ export default function ChatPage() {
                         <div className={`mb-2.5 p-3 rounded-xl border flex items-center gap-3 ${
                           isOutgoing 
                             ? 'bg-emerald-700/65 border-emerald-550/30 text-white' 
-                            : 'bg-zinc-100 border-zinc-200 text-black'
+                            : 'bg-zinc-100 border-zinc-200 text-zinc-900'
                         }`}>
                           <button
                             type="button"
@@ -689,8 +689,8 @@ export default function ChatPage() {
                               <span className="inline-flex items-center gap-1.5 text-indigo-600 font-bold uppercase tracking-wide text-[9px]">
                                 <span>📱 WhatsApp Flow</span>
                               </span>
-                              <span className="text-black">{msg.body}</span>
-                              <div className="mt-2 w-full bg-zinc-100 text-black text-center py-1.5 rounded-lg text-[10px] font-bold border border-zinc-200 shadow-sm">Open Flow</div>
+                              <span className="text-zinc-900">{msg.body}</span>
+                              <div className="mt-2 w-full bg-zinc-100 text-zinc-800 text-center py-1.5 rounded-lg text-[10px] font-bold border border-zinc-200 shadow-sm">Open Flow</div>
                             </div>
                           ) : (
                             msg.body
@@ -702,7 +702,7 @@ export default function ChatPage() {
                       {msg.buttons && (
                         <div className="mt-3 flex flex-wrap gap-1.5 font-sans">
                           {msg.buttons.map((b, bidx) => (
-                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 font-sans ${isOutgoing ? 'bg-white/10 border-white/20 text-white' : 'bg-zinc-100 border-zinc-200 text-black hover:bg-zinc-200'}`}>
+                            <span key={bidx} className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 font-sans ${isOutgoing ? 'bg-white/10 border-white/20 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-700 hover:bg-zinc-200'}`}>
                               🔘 {b}
                             </span>
                           ))}
