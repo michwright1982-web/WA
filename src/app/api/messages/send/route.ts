@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { phoneNumberId, accessToken, to, body, type, mediaUrl, buttons, templateId, templateLanguage, templateParams, flowId, flowToken, flowScreen, flowCta, flowHeader, flowFooter, flowPayload } = await request.json();
+    const { phoneNumberId, accessToken, to, body, type, mediaUrl, mediaId, buttons, templateId, templateLanguage, templateParams, flowId, flowToken, flowScreen, flowCta, flowHeader, flowFooter, flowPayload } = await request.json();
 
     if (!phoneNumberId || !accessToken || !to) {
       return NextResponse.json({ error: 'Missing required credentials or recipient number.' }, { status: 400 });
@@ -44,9 +44,12 @@ export async function POST(request: Request) {
         link: mediaUrl,
         caption: body || ''
       };
-    } else if (type === 'document' && mediaUrl) {
+    } else if (type === 'document' && (mediaUrl || mediaId)) {
       payload.type = 'document';
-      payload.document = {
+      payload.document = mediaId ? {
+        id: mediaId,
+        filename: body || 'document.pdf'
+      } : {
         link: mediaUrl,
         filename: body || 'document.pdf'
       };

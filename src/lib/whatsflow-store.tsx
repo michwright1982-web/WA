@@ -48,6 +48,7 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read' | 'failed';
   timestamp: string;
   mediaUrl?: string;
+  mediaId?: string;
   buttons?: string[];
 }
 
@@ -117,7 +118,7 @@ interface WhatsFlowContextType {
   deleteAccount: (id: string) => void;
   sendTextMessage: (contactId: string, body: string) => void;
   sendMediaMessage: (contactId: string, mediaUrl: string, body: string) => void;
-  sendDocumentMessage: (contactId: string, mediaUrl: string, fileName: string) => void;
+  sendDocumentMessage: (contactId: string, mediaUrl: string, fileName: string, mediaId?: string) => void;
   sendVoiceMessage: (contactId: string, mediaUrl: string, duration: string) => void;
   sendButtonMessage: (contactId: string, body: string, buttons: string[]) => void;
   sendTemplateMessage: (contactId: string, templateId: string) => void;
@@ -606,6 +607,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           body: message.body,
           type: message.type,
           mediaUrl: message.mediaUrl,
+          mediaId: message.mediaId,
           buttons: message.buttons,
           ...extraParams
         })
@@ -662,7 +664,7 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     sendMessageToMeta(newMsg);
   };
 
-  const sendDocumentMessage = (cId: string, mediaUrl: string, fileName: string) => {
+  const sendDocumentMessage = (cId: string, mediaUrl: string, fileName: string, mediaId?: string) => {
     const newMsg: Message = {
       id: `m-doc-${Date.now()}`,
       accountId: activeAccountId,
@@ -670,12 +672,13 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       type: 'document',
       body: fileName,
       mediaUrl,
+      mediaId,
       direction: 'OUTGOING',
       status: 'sent',
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMsg]);
-    sendMessageToMeta(newMsg);
+    sendMessageToMeta(newMsg, mediaId ? { mediaId } : {});
   };
 
   const sendVoiceMessage = (cId: string, mediaUrl: string, duration: string) => {

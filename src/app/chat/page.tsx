@@ -112,6 +112,7 @@ export default function ChatPage() {
   // Document sharing state
   const [showDocModal, setShowDocModal] = useState(false);
   const [docName, setDocName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [selectedDocFile, setSelectedDocFile] = useState<File | null>(null);
 
@@ -195,19 +196,42 @@ export default function ChatPage() {
     setVoiceDuration(0);
   };
 
-  const handleSendDocument = () => {
-    // If a local file is selected, create an object URL and send
-    if (selectedDocFile) {
-      const objectUrl = URL.createObjectURL(selectedDocFile);
+  const handleSendDocument = async () => {
+    if (!selectedDocFile) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedDocFile);
+      if (activeAccount) {
+        formData.append('phoneNumberId', activeAccount.phoneNumberId);
+        formData.append('accessToken', activeAccount.accessToken);
+      }
+
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload document.');
+      }
+
+      const data = await res.json();
       const name = docName || selectedDocFile.name;
-      sendDocumentMessage(activeContactId, objectUrl, name);
-      // Revoke URL after short delay
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+      const finalUrl = data.mediaUrl ? window.location.origin + data.mediaUrl : '';
+
+      sendDocumentMessage(activeContactId, finalUrl, name, data.mediaId);
+    } catch (err: any) {
+      console.error('Error sharing document:', err);
+      alert(err.message || 'Error occurred while sharing document.');
+    } finally {
+      setIsUploading(false);
+      setShowDocModal(false);
+      setSelectedDocFile(null);
+      setDocName('');
     }
-    // Reset state and close modal
-    setShowDocModal(false);
-    setSelectedDocFile(null);
-    setDocName('');
   };
 
   const handleSendText = (e: React.FormEvent) => {
@@ -855,8 +879,16 @@ export default function ChatPage() {
                         />
                     </div>
                     <div className="flex justify-end gap-2 pt-1">
-                        <button onClick={() => setShowDocModal(false)} className="text-[10px] text-zinc-450">Cancel</button>
-                        <button onClick={handleSendDocument} className="text-[10px] bg-white text-black px-2.5 py-1 rounded font-bold">Send Document</button>
+                        <button onClick={() => setShowDocModal(false)} disabled={isUploading} className="text-[10px] text-zinc-450 hover:text-zinc-300 disabled:opacity-50">Cancel</button>
+                        <button
+                          onClick={handleSendDocument}
+                          disabled={isUploading || !selectedDocFile}
+                          className={`text-[10px] bg-white text-black px-2.5 py-1 rounded font-bold transition-all flex items-center gap-1 ${
+                            (isUploading || !selectedDocFile) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 cursor-pointer'
+                          }`}
+                        >
+                          {isUploading ? 'Uploading...' : 'Send Document'}
+                        </button>
                     </div>
                 </div>
             )}
