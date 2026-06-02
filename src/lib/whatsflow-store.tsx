@@ -909,6 +909,16 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       localStorage.setItem('whatsflow_custom_crm_fields', JSON.stringify(next));
       return next;
     });
+
+    setContacts(prev => {
+      return prev.map(c => {
+        const contactCopy = { ...c } as any;
+        if (name in contactCopy) {
+          delete contactCopy[name];
+        }
+        return contactCopy;
+      });
+    });
   };
 
   return (

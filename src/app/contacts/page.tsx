@@ -41,6 +41,10 @@ export default function ContactsPage() {
 
   const [newCustomFieldName, setNewCustomFieldName] = useState('');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  
+  // Custom Field Deletion warning states
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
 
   const filtered = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -209,7 +213,10 @@ export default function ContactsPage() {
                 >
                   <span className="font-semibold">{field}</span>
                   <button
-                    onClick={() => deleteCustomCrmField(field)}
+                    onClick={() => {
+                      setFieldToDelete(field);
+                      setShowDeleteConfirmModal(true);
+                    }}
                     className="text-zinc-500 hover:text-red-400 transition-colors p-0.5"
                     title={`Delete custom field "${field}"`}
                   >
@@ -429,6 +436,60 @@ export default function ContactsPage() {
                   </button>
                 </div>
               </form>
+
+            </div>
+          </div>
+        )}
+
+        {/* Delete Custom Field Confirmation Modal */}
+        {showDeleteConfirmModal && fieldToDelete && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-zinc-900 border border-zinc-800/80 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
+              
+              <div className="flex items-center gap-3 border-b border-zinc-800/60 pb-3">
+                <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 border border-red-500/20">
+                  <Trash2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-200">Delete Custom Field?</h3>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">This action is permanent and cannot be undone</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Are you sure you want to delete the custom field <span className="font-semibold text-zinc-100 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800 font-mono">"{fieldToDelete}"</span>?
+                </p>
+                <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 text-[11px] text-red-400/90 leading-relaxed">
+                  <strong>Warning:</strong> Deleting this field will permanently erase all values stored inside it across <strong>all</strong> of your contacts in the database. If you recreate this field later, the old data will not be recovered.
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800/60">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirmModal(false);
+                    setFieldToDelete(null);
+                  }}
+                  className="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700/80 text-zinc-300 hover:text-white font-semibold text-xs transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (fieldToDelete) {
+                      deleteCustomCrmField(fieldToDelete);
+                    }
+                    setShowDeleteConfirmModal(false);
+                    setFieldToDelete(null);
+                  }}
+                  className="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-900/20 transition-all border border-red-500/30"
+                >
+                  Delete Field & Clear Data
+                </button>
+              </div>
 
             </div>
           </div>
