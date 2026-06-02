@@ -13,7 +13,10 @@ import {
   Mail, 
   Phone,
   Tag,
-  Edit
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical
 } from 'lucide-react';
 
 export default function ContactsPage() {
@@ -25,7 +28,8 @@ export default function ContactsPage() {
     setActiveContactId,
     customCrmFields,
     addCustomCrmField,
-    deleteCustomCrmField
+    deleteCustomCrmField,
+    reorderCustomCrmFields
   } = useWhatsFlow();
   const router = useRouter();
 
@@ -35,7 +39,6 @@ export default function ContactsPage() {
   
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [labelInput, setLabelInput] = useState<string>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
@@ -45,6 +48,46 @@ export default function ContactsPage() {
   // Custom Field Deletion warning states
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
+
+  const handleMoveField = (fieldName: string, direction: 'left' | 'right') => {
+    const index = customCrmFields.indexOf(fieldName);
+    if (index === -1) return;
+    
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= customCrmFields.length) return;
+    
+    const newFields = [...customCrmFields];
+    const temp = newFields[index];
+    newFields[index] = newFields[targetIndex];
+    newFields[targetIndex] = temp;
+    
+    reorderCustomCrmFields(newFields);
+  };
+
+  // Drag and Drop States & Handlers
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    const newFields = [...customCrmFields];
+    const draggedItem = newFields[draggedIndex];
+    newFields.splice(draggedIndex, 1);
+    newFields.splice(index, 0, draggedItem);
+    
+    reorderCustomCrmFields(newFields);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   const filtered = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -56,7 +99,6 @@ export default function ContactsPage() {
     setEditContactId(null);
     setName('');
     setPhone('');
-    setEmail('');
     setLabelInput('');
     setStatus('active');
     
@@ -73,7 +115,6 @@ export default function ContactsPage() {
     setEditContactId(ct.id);
     setName(ct.name);
     setPhone(ct.phoneNumber);
-    setEmail(ct.email || '');
     setLabelInput(ct.label || '');
     setStatus(ct.status);
     
@@ -93,7 +134,6 @@ export default function ContactsPage() {
     const payload = {
       name,
       phoneNumber: phone,
-      email: email || undefined,
       label: labelInput || undefined,
       status,
       ...customValues
@@ -107,7 +147,6 @@ export default function ContactsPage() {
 
     setName('');
     setPhone('');
-    setEmail('');
     setLabelInput('');
     setStatus('active');
     setCustomValues({});
@@ -117,12 +156,12 @@ export default function ContactsPage() {
 
   const handleExportCSV = () => {
     const customHeaders = customCrmFields.length > 0 ? `,${customCrmFields.map(f => f.toUpperCase()).join(',')}` : '';
-    const headers = `Name,Phone,Email,Label,Status${customHeaders}\n`;
+    const headers = `Name,Phone,Label,Status${customHeaders}\n`;
     const rows = contacts.map(c => {
       const customRowData = customCrmFields.length > 0 
         ? `,${customCrmFields.map(f => `"${(c as any)[f] || ''}"`).join(',')}` 
         : '';
-      return `"${c.name}","${c.phoneNumber}","${c.email || ''}","${c.label || ''}","${c.status}"${customRowData}`;
+      return `"${c.name}","${c.phoneNumber}","${c.label || ''}","${c.status}"${customRowData}`;
     }).join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -206,22 +245,47 @@ export default function ContactsPage() {
             {customCrmFields.length === 0 ? (
               <p className="text-[11px] text-zinc-500">No custom fields defined. Add one above.</p>
             ) : (
-              customCrmFields.map(field => (
+              customCrmFields.map((field, index) => (
                 <div 
                   key={field} 
-                  className="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-lg text-xs text-zinc-300 transition-colors"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1 rounded-lg text-xs text-zinc-300 transition-all select-none cursor-grab active:cursor-grabbing ${
+                    draggedIndex === index ? 'opacity-40 border-dashed border-zinc-600 bg-zinc-900/50' : ''
+                  }`}
                 >
+                  <GripVertical className="h-3.5 w-3.5 text-zinc-600 hover:text-zinc-400 transition-colors shrink-0 cursor-grab active:cursor-grabbing" />
                   <span className="font-semibold">{field}</span>
-                  <button
-                    onClick={() => {
-                      setFieldToDelete(field);
-                      setShowDeleteConfirmModal(true);
-                    }}
-                    className="text-zinc-500 hover:text-red-400 transition-colors p-0.5"
-                    title={`Delete custom field "${field}"`}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex items-center gap-1 border-l border-zinc-800/80 pl-1.5 ml-0.5">
+                    <button
+                      onClick={() => handleMoveField(field, 'left')}
+                      disabled={index === 0}
+                      className="text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:hover:text-zinc-500 transition-colors p-0.5 cursor-pointer"
+                      title="Move left"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveField(field, 'right')}
+                      disabled={index === customCrmFields.length - 1}
+                      className="text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:hover:text-zinc-500 transition-colors p-0.5 cursor-pointer"
+                      title="Move right"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFieldToDelete(field);
+                        setShowDeleteConfirmModal(true);
+                      }}
+                      className="text-zinc-500 hover:text-red-400 transition-colors p-0.5 ml-0.5 cursor-pointer"
+                      title={`Delete custom field "${field}"`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -252,7 +316,6 @@ export default function ContactsPage() {
                 <tr className="border-b border-zinc-800 text-zinc-500 font-semibold bg-zinc-950/10">
                   <th className="p-4">Customer Name</th>
                   <th className="p-4">WhatsApp Phone</th>
-                  <th className="p-4">Email</th>
                   <th className="p-4">Assigned Label</th>
                   <th className="p-4">Qualified Status</th>
                   {customCrmFields.map(field => (
@@ -276,7 +339,6 @@ export default function ContactsPage() {
                       </button>
                     </td>
                     <td className="p-4 text-zinc-300 font-mono">{ct.phoneNumber}</td>
-                    <td className="p-4 text-zinc-400">{ct.email || '—'}</td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1">
                         {ct.label && (
@@ -367,17 +429,6 @@ export default function ContactsPage() {
                     placeholder="+1 (555) 012-3456"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-zinc-400 block mb-1">Email Address (Optional)</label>
-                  <input
-                    type="email"
-                    placeholder="jane@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-xs text-white focus:outline-none"
                   />
                 </div>

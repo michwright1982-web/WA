@@ -146,6 +146,7 @@ interface WhatsFlowContextType {
   customCrmFields: string[];
   addCustomCrmField: (fieldName: string) => void;
   deleteCustomCrmField: (fieldName: string) => void;
+  reorderCustomCrmFields: (newFields: string[]) => void;
 }
 
 const WhatsFlowContext = createContext<WhatsFlowContextType | undefined>(undefined);
@@ -179,13 +180,13 @@ const SEED_ACCOUNTS: WhatsAppAccount[] = [
 ];
 
 const SEED_CONTACTS: Contact[] = [
-  { id: 'c-1', accountId: 'acc-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', email: 'alex@rivera.com', label: 'new', status: 'active', leadStatus: 'qualified', interactions: [
+  { id: 'c-1', accountId: 'acc-1', name: 'Alex Rivera', phoneNumber: '+1 (555) 019-2834', label: 'new', status: 'active', leadStatus: 'qualified', interactions: [
     { id: 'int-1', date: '2026-05-24', medium: 'whatsapp', notes: 'Discussed pricing tiers and enterprise plan.', createdAt: '2026-05-24T10:30:00Z' },
     { id: 'int-2', date: '2026-05-25', medium: 'phone', notes: 'Follow-up call: confirmed interest in premium tier.', createdAt: '2026-05-25T14:15:00Z' }
   ] },
-  { id: 'c-2', accountId: 'acc-1', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', email: 'sam@chen.design', label: 'language selected', status: 'active', leadStatus: 'new', interactions: [] },
-  { id: 'c-3', accountId: 'acc-1', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', email: 'marcus.j@enterprise.com', label: 'flow filled', status: 'active', leadStatus: 'qualified', interactions: [] },
-  { id: 'c-4', accountId: 'acc-1', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', email: 'clara@tardis.io', label: 'new', status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
+  { id: 'c-2', accountId: 'acc-1', name: 'Samantha Chen', phoneNumber: '+1 (555) 024-9481', label: 'language selected', status: 'active', leadStatus: 'new', interactions: [] },
+  { id: 'c-3', accountId: 'acc-1', name: 'Marcus Johnson', phoneNumber: '+1 (555) 038-1294', label: 'flow filled', status: 'active', leadStatus: 'qualified', interactions: [] },
+  { id: 'c-4', accountId: 'acc-1', name: 'Clara Oswald', phoneNumber: '+1 (555) 049-3829', label: 'new', status: 'inactive', leadStatus: 'not_qualified', interactions: [] }
 ];
 
 const SEED_MESSAGES: Message[] = [
@@ -921,6 +922,11 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const reorderCustomCrmFields = (newFields: string[]) => {
+    setCustomCrmFields(newFields);
+    localStorage.setItem('whatsflow_custom_crm_fields', JSON.stringify(newFields));
+  };
+
   return (
     <WhatsFlowContext.Provider value={{
       accounts,
@@ -961,7 +967,8 @@ export const WhatsFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       toggleTheme,
       customCrmFields,
       addCustomCrmField,
-      deleteCustomCrmField
+      deleteCustomCrmField,
+      reorderCustomCrmFields
     }}>
       {hasLoaded ? children : null}
     </WhatsFlowContext.Provider>
