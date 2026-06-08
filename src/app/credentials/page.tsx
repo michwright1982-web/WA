@@ -15,6 +15,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import { FacebookSDK } from '@/components/facebook-sdk';
 
 export default function CredentialsPage() {
   const { accounts, addAccount, updateAccount, deleteAccount } = useWhatsFlow();
@@ -32,6 +33,63 @@ export default function CredentialsPage() {
 
   const domain = typeof window !== 'undefined' ? window.location.origin : '';
   const [copied, setCopied] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleFacebookLogin = () => {
+    if (typeof window === 'undefined' || !window.FB) {
+      alert('Facebook SDK not loaded yet. Please ensure NEXT_PUBLIC_META_APP_ID is set.');
+      return;
+    }
+
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+    if (!configId) {
+      alert('NEXT_PUBLIC_META_CONFIG_ID is missing in environment variables.');
+      return;
+    }
+
+    window.FB.login((response: any) => {
+      if (response.authResponse && response.authResponse.code) {
+        exchangeCodeForTokens(response.authResponse.code);
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
+      }
+    }, {
+      config_id: configId,
+      response_type: 'code',
+      override_default_response_type: true,
+      extras: {
+        setup: {},
+        feature: 'whatsapp_embedded_signup'
+      }
+    });
+  };
+
+  const exchangeCodeForTokens = async (code: string) => {
+    setIsConnecting(true);
+    try {
+      const res = await fetch('/api/auth/meta/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to exchange code');
+      }
+      
+      const data = await res.json();
+      if (data.success && data.credential) {
+        addAccount(data.credential);
+        alert('WhatsApp line connected successfully! Please click "Edit" on the newly added line to update your exact Phone Number ID and Business Account ID.');
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert(`Error connecting WhatsApp account: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
 
   const handleCopyWebhook = () => {
@@ -97,6 +155,7 @@ export default function CredentialsPage() {
 
   return (
     <DashboardShell>
+      <FacebookSDK />
       <div className="space-y-6 max-w-6xl">
         
         {/* Banner */}
@@ -111,12 +170,22 @@ export default function CredentialsPage() {
             </div>
           </div>
 
-          <button 
-            onClick={handleOpenAdd}
-            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 font-bold transition-all shadow-md"
-          >
-            <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> Connect Line
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleFacebookLogin}
+              disabled={isConnecting}
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2] text-white hover:bg-[#1864D9] font-bold transition-all shadow-md disabled:opacity-50"
+            >
+              {isConnecting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />} 
+              {isConnecting ? 'Connecting...' : 'Connect with Facebook'}
+            </button>
+            <button 
+              onClick={handleOpenAdd}
+              className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 font-bold transition-all shadow-md border border-zinc-700"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" /> Add Manually
+            </button>
+          </div>
         </div>
 
         {/* Info Box: Webhook callback address configurations */}
